@@ -1,0 +1,45 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+
+## ✍️ Code Style & Quality
+
+- ✅ Follow **TypeScript best practices**
+- ✅ Use `type` or `interface` appropriately
+- ✅ Prefer explicit typing over `any`
+- ✅ Ensure **no implicit `any`**
+- ✅ Use `const` by default. Use `let` only when reassignment is necessary.
+- ✅ Prefer named exports over default exports.
+- ✅ Use descriptive function/variable names.
+- ✅ Use OOP (Object Oriented Programming) when writing logic related to FabricJS
+
+---
+
+## ⚙️ Component Rules
+
+- ✅ Use **server components** by default.
+- ✅ Use **client components** only when necessary (e.g., hooks, interactivity).
+- ✅ Add `'use client'` only when needed, at the top of the file.
+- ✅ Keep components **pure** and **presentational** when possible.
+
+---
+
+## 🔗 API Routes & Data Fetching
+
+- ✅ Use **zod** for request/response validation.
+- ✅ Use `fetch` with error handling.
+- ✅ Abstract external API logic to `/lib`.
+
+---
+
+## 🧠 Readability & Maintainability
+
+- ✅ Keep files under ~200 lines.
+- ✅ Split into smaller components/helpers if code grows large.
+- ✅ Add JSDoc comments for non-obvious functions.
+- ✅ Use comments to explain **why**, not **what**.
+- ✅ Use ESLint and Prettier.
+
+---
