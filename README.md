@@ -23,10 +23,22 @@ A modern, web-based design tool built with Next.js, React, FabricJS, and ShadCN 
 - **Tooltips**: Helpful hints for all tools
 - **Keyboard Shortcuts**: Quick access to tools
 
+### 🤖 AI Assistant
+- **Design Assistant**: AI-powered chat interface to help with design tasks
+- **Google Gemini Integration**: Powered by Google's Gemini AI model
+- **Design-focused Responses**: Tailored to provide design guidance and suggestions
+- **Canvas Tools**: AI can directly manipulate canvas objects through tools:
+  - **Create Elements**: Add rectangles, circles, and text
+  - **Move & Transform**: Position, scale, and rotate objects
+  - **Property Updates**: Change colors, stroke, opacity, and more
+  - **Object Management**: Select, delete, and modify existing objects
+  - **Canvas Control**: Change background colors and other canvas properties
+
 ## Tech Stack
 
 - **Frontend**: Next.js 15, React 19, TypeScript
 - **Canvas**: FabricJS 6.7
+- **AI**: Vercel AI SDK with Google Gemini
 - **UI Components**: ShadCN UI (Radix UI + Tailwind CSS)
 - **State Management**: Zustand
 - **Styling**: Tailwind CSS
@@ -38,6 +50,7 @@ A modern, web-based design tool built with Next.js, React, FabricJS, and ShadCN 
 ### Prerequisites
 - Node.js 18 or higher
 - pnpm (recommended) or npm
+- Google AI API key (for AI assistant functionality)
 
 ### Installation
 
@@ -52,12 +65,26 @@ cd project-a
 pnpm install
 ```
 
-3. Run the development server:
+3. Set up environment variables:
+```bash
+# Create a .env.local file in the root directory
+cp .env.example .env.local
+
+# Add your Google AI API key to .env.local
+GOOGLE_GENERATIVE_AI_API_KEY=your_google_ai_api_key_here
+```
+
+4. Get your Google AI API key:
+   - Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
+   - Create a new API key
+   - Copy the API key to your `.env.local` file
+
+5. Run the development server:
 ```bash
 pnpm dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the design tool.
+6. Open [http://localhost:3000](http://localhost:3000) with your browser to see the design tool.
 
 ## Testing
 
@@ -130,6 +157,28 @@ project-a/
 - **Zoom**: Mouse wheel or pinch gesture
 - **Select Multiple**: Hold Ctrl/Cmd and click objects
 - **Delete**: Select object and press Delete key
+
+### AI Assistant Usage
+
+The AI assistant can directly manipulate your canvas through natural language commands. Here are some example interactions:
+
+**Creating Objects:**
+- "Create a blue rectangle at position 100, 150"
+- "Add a red circle in the center"
+- "Make a text that says 'Hello World' at the top left"
+
+**Modifying Objects:**
+- "Move the selected object to the right by 50 pixels"
+- "Make the circle bigger by scaling it to 1.5x"
+- "Rotate the rectangle 45 degrees"
+- "Change the color to green"
+
+**Canvas Management:**
+- "Change the background to light gray"
+- "Select the first object"
+- "Delete the selected object"
+
+The AI will execute these commands directly on your canvas and provide feedback about the actions performed.
 
 ## Component Architecture
 

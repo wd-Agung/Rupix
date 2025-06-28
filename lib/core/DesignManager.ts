@@ -1,7 +1,7 @@
 import type { TEvent } from 'fabric';
 import * as fabric from 'fabric';
 import { v4 as uuidv4 } from 'uuid';
-import { initControls } from './control';
+import { initControls } from './Control';
 import { CanvasRuler } from './ruler';
 import initAligningGuidelines from './ruler/SnapLine';
 
@@ -31,6 +31,7 @@ export interface BaseLayerConfig {
   fill?: string
   stroke?: string
   strokeWidth?: number
+  opacity?: number
 }
 
 type DesignManagerListener = (manager: DesignManager) => void
@@ -54,18 +55,31 @@ export class DesignManager {
     y: 0,
     fill: '#ffffff',
     stroke: '#e5e5e5',
-    strokeWidth: 1
+    strokeWidth: 0,
+    opacity: 1
   }
   public clippingEnabled: boolean = true
 
   // Tool properties
   public selectedTool: ToolType = 'select'
   public fillColor = '#3b82f6'
-  public strokeColor = '#1e40af'
-  public strokeWidth = 2
+  public strokeColor = 'transparent'
+  public strokeWidth = 0
   public fontSize = 20
-  public fontFamily = 'Arial'
+  public fontFamily = 'Inter'
   public opacity = 1
+
+  // Text formatting properties
+  public fontWeight = 'normal'
+  public fontStyle = 'normal'
+  public underline = false
+  public textAlign = 'left'
+  public lineHeight = 1.2
+  public charSpacing = 0
+
+  // Advanced styling properties
+  public shadow: fabric.Shadow | null = null
+  public backgroundColor = 'transparent'
 
   // Pan state
   public isDragging = false
@@ -73,6 +87,9 @@ export class DesignManager {
   public lastPosY = 0
   public isSpacePressed = false
   public panMethod: 'none' | 'alt' | 'middle' | 'space' | 'touch' = 'none'
+
+  // Camera lock state
+  public cameraLocked = true // Default to locked
 
   private listeners: Set<DesignManagerListener> = new Set()
 
@@ -117,6 +134,12 @@ export class DesignManager {
 
     // Initialize base layer
     this.initializeBaseLayer()
+
+    // Center camera if locked (default behavior)
+    if (this.cameraLocked) {
+      // Delay centering to ensure base layer is fully rendered
+      setTimeout(() => this.centerCamera(), 10)
+    }
   }
 
   private setupEventListeners() {
@@ -125,6 +148,12 @@ export class DesignManager {
     this.canvas.on('mouse:wheel', this.handleZoom)
     this.canvas.on('mouse:down', this.handleToolMouseDown)
     this.canvas.on('object:moving', this.handleObjectMoving)
+
+    // Add drag and drop support
+    this.setupDragAndDrop()
+
+    // Add clipboard paste support
+    this.setupClipboardPaste()
   }
 
   private setupKeyboardListeners() {
@@ -134,6 +163,122 @@ export class DesignManager {
 
     // Ensure canvas element can receive focus for keyboard events
     canvasElement.setAttribute('tabindex', '0')
+  }
+
+  private setupDragAndDrop() {
+    if (!this.canvas) return
+
+    const canvasElement = this.canvas.getElement()
+    const canvasContainer = canvasElement.parentElement
+
+    if (!canvasContainer) return
+
+    // Prevent default drag behaviors
+    canvasContainer.addEventListener('dragenter', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+    })
+
+    canvasContainer.addEventListener('dragover', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      // Add visual feedback
+      canvasContainer.style.opacity = '0.8'
+    })
+
+    canvasContainer.addEventListener('dragleave', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      // Remove visual feedback
+      canvasContainer.style.opacity = '1'
+    })
+
+    canvasContainer.addEventListener('drop', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      // Remove visual feedback
+      canvasContainer.style.opacity = '1'
+
+      const files = e.dataTransfer?.files
+      if (files) {
+        Array.from(files).forEach(file => {
+          if (file.type.startsWith('image/')) {
+            const reader = new FileReader()
+            reader.onload = (event) => {
+              const result = event.target?.result as string
+              if (result) {
+                // Get drop position relative to canvas
+                const rect = canvasElement.getBoundingClientRect()
+                const x = e.clientX - rect.left
+                const y = e.clientY - rect.top
+                const canvasPoint = this.canvas?.getScenePoint(e as any)
+
+                this.addImageFromDataURL(result, file.name, canvasPoint)
+              }
+            }
+            reader.readAsDataURL(file)
+          }
+        })
+      }
+    })
+  }
+
+  private setupClipboardPaste() {
+    if (!this.canvas) return
+
+    // Listen for paste events on the document
+    document.addEventListener('paste', (e) => {
+      // Only handle paste if canvas has focus or is the active element
+      const canvasElement = this.canvas?.getElement()
+      if (!canvasElement || !this.isCanvasFocused()) return
+
+      const items = e.clipboardData?.items
+      if (!items) return
+
+      Array.from(items).forEach(item => {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile()
+          if (file) {
+            const reader = new FileReader()
+            reader.onload = (event) => {
+              const result = event.target?.result as string
+              if (result) {
+                // Add image at center of viewport
+                const center = this.getCanvasCenter()
+                this.addImageFromDataURL(result, 'Pasted Image', center)
+              }
+            }
+            reader.readAsDataURL(file)
+          }
+        }
+      })
+
+      e.preventDefault()
+    })
+  }
+
+  private isCanvasFocused(): boolean {
+    if (!this.canvas) return false
+    const canvasElement = this.canvas.getElement()
+    return document.activeElement === canvasElement ||
+      document.activeElement === canvasElement.parentElement ||
+      canvasElement.contains(document.activeElement)
+  }
+
+  private getCanvasCenter(): { x: number; y: number } {
+    if (!this.canvas) return { x: 0, y: 0 }
+
+    const viewportTransform = this.canvas.viewportTransform
+    const zoom = this.canvas.getZoom()
+    const width = this.canvas.getWidth()
+    const height = this.canvas.getHeight()
+
+    // Calculate center point in canvas coordinates
+    const centerX = (width / 2 - (viewportTransform?.[4] || 0)) / zoom
+    const centerY = (height / 2 - (viewportTransform?.[5] || 0)) / zoom
+
+    return { x: centerX, y: centerY }
   }
 
   // --- Event Handlers ---
@@ -154,18 +299,45 @@ export class DesignManager {
     const isZoomModifier = event.ctrlKey || event.metaKey
 
     if (isZoomModifier) {
-      // Zoom behavior
-      const delta = event.deltaY
+      // Zoom behavior - always allow zooming
+      const delta = event.deltaY * 4
       let zoom = this.canvas.getZoom() * (0.999 ** delta)
       zoom = Math.max(0.1, Math.min(zoom, 20))
-      this.canvas.zoomToPoint(new fabric.Point(event.offsetX, event.offsetY), zoom)
-    } else {
-      // Default panning behavior
+
+      if (this.cameraLocked) {
+        // When camera is locked, zoom to center with limits
+        const canvasWidth = this.canvas.getWidth()
+        const canvasHeight = this.canvas.getHeight()
+
+        // Calculate minimum zoom to fit entire canvas with padding
+        const padding = 80
+        const availableWidth = canvasWidth - (padding * 2)
+        const availableHeight = canvasHeight - (padding * 2)
+        const scaleX = availableWidth / this.baseLayerConfig.width
+        const scaleY = availableHeight / this.baseLayerConfig.height
+        const minZoom = Math.min(scaleX, scaleY, 1) * 0.8 // Allow zooming out a bit more
+
+        // Constrain zoom to reasonable limits when camera is locked
+        const constrainedZoom = Math.max(minZoom, Math.min(zoom, 3)) // Max 3x zoom when locked
+
+        this.canvas.zoomToPoint(new fabric.Point(canvasWidth / 2, canvasHeight / 2), constrainedZoom)
+
+        // After zooming, re-center the canvas
+        this.centerCameraPosition()
+      } else {
+        this.canvas.zoomToPoint(new fabric.Point(event.offsetX, event.offsetY), zoom)
+      }
+    } else if (!this.cameraLocked) {
+      // Only allow panning when camera is not locked
       this.canvas.relativePan(new fabric.Point(event.deltaX, event.deltaY))
     }
 
     event.preventDefault()
     event.stopPropagation()
+
+    if (!this.cameraLocked) {
+      this.updateRuler()
+    }
   }
 
   private handleToolMouseDown = (opt: fabric.TEvent) => {
@@ -183,14 +355,26 @@ export class DesignManager {
     const textProps = {
       fontSize: this.fontSize,
       fontFamily: this.fontFamily,
+      fontWeight: this.fontWeight,
+      fontStyle: this.fontStyle,
+      underline: this.underline,
+      textAlign: this.textAlign,
+      lineHeight: this.lineHeight,
+      charSpacing: this.charSpacing,
       fill: this.fillColor,
       opacity: this.opacity,
+      shadow: this.shadow,
+      backgroundColor: this.backgroundColor,
     }
 
     switch (this.selectedTool) {
       case 'rectangle': this.addRectangle({ x: pointer.x, y: pointer.y }, props); break
       case 'circle': this.addCircle({ x: pointer.x, y: pointer.y }, props); break
       case 'text': this.addText({ x: pointer.x, y: pointer.y }, textProps); break
+      case 'image':
+        // For image tool, we'll trigger the file input dialog
+        this.triggerImageUpload(pointer)
+        break
     }
 
     this.selectedTool = 'select'
@@ -217,6 +401,7 @@ export class DesignManager {
       fill: this.baseLayerConfig.fill,
       stroke: this.baseLayerConfig.stroke,
       strokeWidth: this.baseLayerConfig.strokeWidth,
+      opacity: this.baseLayerConfig.opacity,
       selectable: false,
       evented: false,
       excludeFromExport: false,
@@ -255,7 +440,7 @@ export class DesignManager {
   public updateBaseLayer(config: Partial<BaseLayerConfig>) {
     this.baseLayerConfig = { ...this.baseLayerConfig, ...config }
 
-    if (this.baseLayer) {
+    if (this.baseLayer && this.canvas) {
       this.baseLayer.set({
         left: this.baseLayerConfig.x,
         top: this.baseLayerConfig.y,
@@ -263,12 +448,50 @@ export class DesignManager {
         height: this.baseLayerConfig.height,
         fill: this.baseLayerConfig.fill,
         stroke: this.baseLayerConfig.stroke,
-        strokeWidth: this.baseLayerConfig.strokeWidth
+        strokeWidth: this.baseLayerConfig.strokeWidth,
+        opacity: this.baseLayerConfig.opacity
       })
+
+      if (config.width !== undefined || config.height !== undefined) {
+        const newBounds = this.getBaseLayerBounds()
+        const objects = this.canvas.getObjects().filter(obj => !(obj as any).isBaseLayer)
+
+        objects.forEach(obj => {
+          const objBounds = obj.getBoundingRect()
+          const newPos: { left?: number; top?: number } = {}
+          let needsUpdate = false
+
+          if (objBounds.left < newBounds.left) {
+            newPos.left = newBounds.left
+            needsUpdate = true
+          } else if (objBounds.left + objBounds.width > newBounds.right) {
+            newPos.left = newBounds.right - objBounds.width
+            needsUpdate = true
+          }
+
+          if (objBounds.top < newBounds.top) {
+            newPos.top = newBounds.top
+            needsUpdate = true
+          } else if (objBounds.top + objBounds.height > newBounds.bottom) {
+            newPos.top = newBounds.bottom - objBounds.height
+            needsUpdate = true
+          }
+
+          if (needsUpdate) {
+            obj.set(newPos)
+            obj.setCoords()
+          }
+        })
+      }
 
       // Update clipping if enabled
       if (this.clippingEnabled) {
         this.setupClipping()
+      }
+
+      // Re-center camera if locked and size changed
+      if (this.cameraLocked && (config.width !== undefined || config.height !== undefined)) {
+        this.centerCamera()
       }
 
       this.canvas?.renderAll()
@@ -355,8 +578,8 @@ export class DesignManager {
       width: 100,
       height: 80,
       fill: props.fill,
-      stroke: props.stroke,
-      strokeWidth: props.strokeWidth,
+      stroke: '#000000',
+      strokeWidth: 1,
       opacity: props.opacity,
       cornerColor: '#ffffff',
       cornerStrokeColor: '#3b82f6',
@@ -389,8 +612,8 @@ export class DesignManager {
       top: pos.y,
       radius: 50,
       fill: props.fill,
-      stroke: props.stroke,
-      strokeWidth: props.strokeWidth,
+      stroke: '#000000',
+      strokeWidth: 1,
       opacity: props.opacity,
       cornerColor: '#ffffff',
       cornerStrokeColor: '#3b82f6',
@@ -415,7 +638,20 @@ export class DesignManager {
 
   public addText(
     pos: { x: number; y: number },
-    props: { fontSize: number; fontFamily: string; fill: string; opacity: number }
+    props: {
+      fontSize: number;
+      fontFamily: string;
+      fontWeight: string;
+      fontStyle: string;
+      underline: boolean;
+      textAlign: string;
+      lineHeight: number;
+      charSpacing: number;
+      fill: string;
+      opacity: number;
+      shadow: fabric.Shadow | null;
+      backgroundColor: string;
+    }
   ) {
     if (!this.canvas) return
     const text = new fabric.IText('', {
@@ -423,8 +659,16 @@ export class DesignManager {
       top: pos.y,
       fontSize: props.fontSize,
       fontFamily: props.fontFamily,
-      fill: props.fill,
+      fontWeight: props.fontWeight,
+      fontStyle: props.fontStyle,
+      underline: props.underline,
+      textAlign: props.textAlign,
+      lineHeight: props.lineHeight,
+      charSpacing: props.charSpacing,
+      fill: '#000000',
       opacity: props.opacity,
+      shadow: props.shadow,
+      backgroundColor: props.backgroundColor !== 'transparent' ? props.backgroundColor : undefined,
       cornerColor: '#ffffff',
       cornerStrokeColor: '#3b82f6',
       borderColor: '#3b82f6',
@@ -445,6 +689,79 @@ export class DesignManager {
     this.canvas.renderAll()
     text.enterEditing()
     this.addLayer({ name: 'Text', object: text, visible: true, locked: false })
+  }
+
+  public addImageFromDataURL(dataUrl: string, name: string, position?: { x: number; y: number }) {
+    if (!this.canvas) return
+
+    // Use provided position or center of canvas
+    const pos = position || this.getCanvasCenter()
+
+    fabric.Image.fromURL(dataUrl, {
+      crossOrigin: 'anonymous'
+    }).then((img: fabric.Image) => {
+      if (!img || !this.canvas) return
+
+      // Scale image to reasonable size if too large
+      const maxWidth = 300
+      const maxHeight = 300
+      const scale = Math.min(maxWidth / img.width!, maxHeight / img.height!, 1)
+
+      img.set({
+        left: pos.x - (img.width! * scale) / 2,
+        top: pos.y - (img.height! * scale) / 2,
+        scaleX: scale,
+        scaleY: scale,
+        cornerColor: '#ffffff',
+        cornerStrokeColor: '#3b82f6',
+        borderColor: '#3b82f6',
+        cornerSize: 8,
+        transparentCorners: false,
+        cornerStyle: 'rect',
+        borderScaleFactor: 2,
+        padding: 4
+      })
+
+      this.canvas.add(img)
+      this.canvas.setActiveObject(img)
+
+      // Ensure base layer stays at bottom
+      if (this.baseLayer) {
+        this.canvas.sendObjectToBack(this.baseLayer)
+      }
+
+      this.canvas.renderAll()
+      this.addLayer({ name: name || 'Image', object: img, visible: true, locked: false })
+    }).catch((error) => {
+      console.error('Failed to load image:', error)
+    })
+  }
+
+  private triggerImageUpload(position: { x: number; y: number }) {
+    // Create file input for image upload
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.multiple = false
+
+    input.onchange = (e) => {
+      const files = (e.target as HTMLInputElement).files
+      if (files && files[0]) {
+        const file = files[0]
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader()
+          reader.onload = (e) => {
+            const result = e.target?.result as string
+            if (result) {
+              this.addImageFromDataURL(result, file.name, position)
+            }
+          }
+          reader.readAsDataURL(file)
+        }
+      }
+    }
+
+    input.click()
   }
 
   // --- Canvas Operations ---
@@ -499,6 +816,73 @@ export class DesignManager {
   public setFontFamily = (family: string) => { this.fontFamily = family }
   public setOpacity = (opacity: number) => { this.opacity = opacity }
 
+  // Text formatting setters
+  public setFontWeight = (weight: string) => { this.fontWeight = weight }
+  public setFontStyle = (style: string) => { this.fontStyle = style }
+  public setUnderline = (underline: boolean) => { this.underline = underline }
+  public setTextAlign = (align: string) => { this.textAlign = align }
+  public setLineHeight = (height: number) => { this.lineHeight = height }
+  public setCharSpacing = (spacing: number) => { this.charSpacing = spacing }
+
+  // Advanced styling setters
+  public setShadow = (shadow: fabric.Shadow | null) => { this.shadow = shadow }
+  public setBackgroundColor = (color: string) => { this.backgroundColor = color }
+
+  // --- Camera Controls ---
+  public setCameraLocked = (locked: boolean) => {
+    this.cameraLocked = locked
+    if (locked) {
+      // When locking, apply proper zoom and centering
+      this.centerCamera()
+    }
+    this.notify()
+  }
+
+  public centerCamera = () => {
+    if (!this.canvas) return
+
+    const canvasWidth = this.canvas.getWidth()
+    const canvasHeight = this.canvas.getHeight()
+    const baseLayerBounds = this.getBaseLayerBounds()
+
+    // Calculate zoom to fit the entire base layer with padding
+    const padding = 80 // 80px padding on all sides
+    const availableWidth = canvasWidth - (padding * 2)
+    const availableHeight = canvasHeight - (padding * 2)
+
+    const scaleX = availableWidth / this.baseLayerConfig.width
+    const scaleY = availableHeight / this.baseLayerConfig.height
+
+    // Use the smaller scale to ensure entire canvas fits
+    const optimalZoom = Math.min(scaleX, scaleY, 1) // Don't zoom in beyond 1:1
+
+    // Calculate the center position for the base layer
+    const centerX = canvasWidth / 2 - (baseLayerBounds.left + this.baseLayerConfig.width / 2) * optimalZoom
+    const centerY = canvasHeight / 2 - (baseLayerBounds.top + this.baseLayerConfig.height / 2) * optimalZoom
+
+    // Set viewport transform with optimal zoom and center position
+    this.canvas.setViewportTransform([optimalZoom, 0, 0, optimalZoom, centerX, centerY])
+    this.canvas.renderAll()
+    this.updateRuler()
+  }
+
+  public centerCameraPosition = () => {
+    if (!this.canvas) return
+
+    const canvasWidth = this.canvas.getWidth()
+    const canvasHeight = this.canvas.getHeight()
+    const baseLayerBounds = this.getBaseLayerBounds()
+    const currentZoom = this.canvas.getZoom()
+
+    // Calculate the center position for the base layer at current zoom
+    const centerX = canvasWidth / 2 - (baseLayerBounds.left + this.baseLayerConfig.width / 2) * currentZoom
+    const centerY = canvasHeight / 2 - (baseLayerBounds.top + this.baseLayerConfig.height / 2) * currentZoom
+
+    // Update only the position, keep current zoom
+    this.canvas.setViewportTransform([currentZoom, 0, 0, currentZoom, centerX, centerY])
+    this.canvas.renderAll()
+  }
+
   // --- Layer Management ---
   public setSelectedLayer = (layerId: string | null) => {
     this.selectedLayerId = layerId
@@ -538,6 +922,48 @@ export class DesignManager {
       this.selectedLayerId = null
     }
     this.notify()
+  }
+
+  public reorderLayer = (layerId: string, newIndex: number) => {
+    if (!this.canvas) return
+
+    const currentIndex = this.layers.findIndex(l => l.id === layerId)
+    if (currentIndex === -1 || currentIndex === newIndex) return
+
+    // Remove layer from current position
+    const [movedLayer] = this.layers.splice(currentIndex, 1)
+
+    // Insert at new position
+    this.layers.splice(newIndex, 0, movedLayer)
+
+    // Update canvas object order to match layer order
+    // Layers array index 0 should be at bottom of canvas (lowest z-index)
+    // So we need to reorder canvas objects accordingly
+    this.updateCanvasObjectOrder()
+
+    this.notify()
+  }
+
+  private updateCanvasObjectOrder = () => {
+    if (!this.canvas) return
+
+    // Get all objects except base layer
+    const objects = this.canvas.getObjects().filter(obj => !(obj as any).isBaseLayer)
+
+    // Clear all objects except base layer
+    objects.forEach(obj => this.canvas?.remove(obj))
+
+    // Re-add objects in layer order (index 0 = bottom, higher index = top)
+    this.layers.forEach(layer => {
+      this.canvas?.add(layer.object)
+    })
+
+    // Ensure base layer stays at the bottom
+    if (this.baseLayer) {
+      this.canvas.sendObjectToBack(this.baseLayer)
+    }
+
+    this.canvas.renderAll()
   }
 
   public toggleLayerVisibility = (layerId: string) => {

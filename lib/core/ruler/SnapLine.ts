@@ -92,7 +92,7 @@ function initAligningGuidelines(canvas: fabric.Canvas) {
     // but we're not doing it here for perf. reasons -- as this a function that's invoked on every mouse move
 
     for (let i = canvasObjects.length; i--;) {
-      // eslint-disable-next-line no-continue
+       
       if (canvasObjects[i] === activeObject) continue
 
       // // Exclude guide lines

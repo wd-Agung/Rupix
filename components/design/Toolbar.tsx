@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import {
   Circle,
   Copy,
-  Download,
+  Focus,
   Image,
   MousePointer,
   Pen,
@@ -16,8 +16,7 @@ import {
   Square,
   Trash2,
   Type,
-  Undo,
-  Upload
+  Undo
 } from 'lucide-react'
 
 interface ToolbarProps {
@@ -38,6 +37,8 @@ export function Toolbar({ className }: ToolbarProps) {
     selectedTool,
     setSelectedTool,
     getActiveDesign,
+    cameraLocked,
+    setCameraLocked,
   } = useDesignStore()
 
   const activeDesign = getActiveDesign()
@@ -77,8 +78,43 @@ export function Toolbar({ className }: ToolbarProps) {
   }
 
   const handleImageUpload = () => {
-    // TODO: Implement image upload using DesignManager
-    console.log('Image upload clicked')
+    if (!activeDesign) return
+
+    // Create file input for image upload
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.multiple = true
+
+    input.onchange = (e) => {
+      const files = (e.target as HTMLInputElement).files
+      if (files) {
+        Array.from(files).forEach(file => {
+          if (file.type.startsWith('image/')) {
+            const reader = new FileReader()
+            reader.onload = (e) => {
+              const result = e.target?.result as string
+              if (result) {
+                activeDesign.addImageFromDataURL(result, file.name)
+              }
+            }
+            reader.readAsDataURL(file)
+          }
+        })
+      }
+    }
+
+    input.click()
+  }
+
+  const handleCameraLockToggle = () => {
+    const newLockState = !cameraLocked
+    setCameraLocked(newLockState)
+
+    // Also update the active design's camera lock state
+    if (activeDesign) {
+      activeDesign.setCameraLocked(newLockState)
+    }
   }
 
   const isDisabled = !activeTab
@@ -154,28 +190,6 @@ export function Toolbar({ className }: ToolbarProps) {
         <div className="flex items-center gap-1">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" onClick={handleImageUpload} disabled={isDisabled}>
-                <Upload className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Upload Image</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" onClick={() => handleExport('png')} disabled={isDisabled}>
-                <Download className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Export as PNG</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="sm"
@@ -188,6 +202,27 @@ export function Toolbar({ className }: ToolbarProps) {
             </TooltipTrigger>
             <TooltipContent>
               <p>Clear Canvas</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
+        <Separator orientation="vertical" className="h-6" />
+
+        {/* Camera Controls */}
+        <div className="flex items-center gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={cameraLocked ? 'default' : 'ghost'}
+                size="sm"
+                onClick={handleCameraLockToggle}
+                disabled={isDisabled}
+              >
+                <Focus className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{cameraLocked ? 'Unlock Camera' : 'Lock Camera to Center'}</p>
             </TooltipContent>
           </Tooltip>
         </div>

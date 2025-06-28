@@ -259,6 +259,8 @@ export function initControls() {
     cornerStyle: "circle",
     cornerStrokeColor: "#0E98FC",
     borderOpacityWhenMoving: 1,
+    snapAngle: 45,
+    snapThreshold: 5,
   }
   fabric.FabricObject.prototype.set(options)
   fabric.Textbox.prototype.set(options)

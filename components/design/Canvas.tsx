@@ -106,8 +106,18 @@ export function Canvas({ className, width, height, onStateChange }: CanvasProps)
     <div
       key={activeDesignId}
       ref={containerRef}
-      className={cn('relative bg-gray-100 w-full h-full', className)}
+      className={cn('relative bg-gray-100 w-full h-full checkerboard', className)}
       style={{ cursor: selectedTool === 'select' ? 'default' : 'crosshair' }}
+      tabIndex={0}
+      onFocus={() => {
+        // Focus the canvas element when container gets focus
+        if (containerRef.current) {
+          const canvas = containerRef.current.querySelector('canvas')
+          if (canvas) {
+            canvas.focus()
+          }
+        }
+      }}
     />
   )
 }

@@ -69,7 +69,7 @@ export function CanvasTabs({ children, className }: CanvasTabsProps) {
 
   return (
     <div className={cn('flex flex-col h-full', className)}>
-      <Tabs value={activeDesignId || ''} onValueChange={setActiveDesign} className="flex-1 flex flex-col h-full">
+      <Tabs value={activeDesignId || ''} onValueChange={setActiveDesign} className="gap-0 flex-1 flex flex-col h-full">
         {/* Tab Bar */}
         <div className="flex items-center justify-between border-b bg-white px-4 py-2">
           <div className="flex items-center gap-2 flex-1 overflow-hidden">
