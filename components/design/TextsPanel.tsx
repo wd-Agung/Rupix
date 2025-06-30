@@ -2,8 +2,9 @@
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useDesignStore } from '@/lib/stores/design-store'
 import { cn } from '@/lib/utils'
-import { Plus, Search, Type } from 'lucide-react'
+import { Search, Type } from 'lucide-react'
 import { useState } from 'react'
 
 interface TextsPanelProps {
@@ -492,6 +493,7 @@ const categories = ['All', 'Headers', 'Body', 'Display', 'Special', 'UI', 'Fun',
 export function TextsPanel({ onCollapse, className }: TextsPanelProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
+  const { getActiveDesign } = useDesignStore()
 
   const filteredStyles = textStyles.filter(style => {
     const matchesSearch = style.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -501,9 +503,82 @@ export function TextsPanel({ onCollapse, className }: TextsPanelProps) {
   })
 
   const handleAddTextToCanvas = (style: typeof textStyles[0]) => {
-    // Here you would integrate with your canvas/design system
-    console.log('Adding text to canvas with style:', style)
-    // Example: designStore.addTextElement(style)
+    const activeDesign = getActiveDesign()
+    if (!activeDesign || !activeDesign.canvas) {
+      console.warn('No active canvas found')
+      return
+    }
+
+    // Convert CSS properties to fabric.js compatible properties
+    const convertFontSize = (fontSize: string): number => {
+      if (fontSize.endsWith('rem')) {
+        return parseFloat(fontSize) * 16 // Convert rem to px (assuming 16px = 1rem)
+      } else if (fontSize.endsWith('px')) {
+        return parseFloat(fontSize)
+      } else if (fontSize.endsWith('em')) {
+        return parseFloat(fontSize) * 16 // Convert em to px
+      }
+      return parseFloat(fontSize) || 16
+    }
+
+    // Get canvas center for positioning
+    const canvasCenter = activeDesign.canvas.getWidth() / 2
+    const canvasCenterY = activeDesign.canvas.getHeight() / 2
+
+    // Convert viewport coordinates to canvas coordinates
+    const viewportTransform = activeDesign.canvas.viewportTransform
+    const zoom = activeDesign.canvas.getZoom()
+    const centerX = (canvasCenter - (viewportTransform?.[4] || 0)) / zoom
+    const centerY = (canvasCenterY - (viewportTransform?.[5] || 0)) / zoom
+
+    const textProps = {
+      fontSize: convertFontSize(style.style.fontSize),
+      fontFamily: style.style.fontFamily,
+      fontWeight: style.style.fontWeight || 'normal',
+      fontStyle: style.style.fontStyle || 'normal',
+      underline: false,
+      textAlign: (style.style as any).textAlign || 'left',
+      lineHeight: (style.style as any).lineHeight || 1.2,
+      charSpacing: (style.style as any).charSpacing || 0,
+      fill: style.style.color || '#000000',
+      opacity: 1,
+      shadow: null,
+      backgroundColor: 'transparent'
+    }
+
+    // Apply text transform to the preview text if specified
+    let displayText = style.preview
+    if (style.style.textTransform === 'uppercase') {
+      displayText = style.preview.toUpperCase()
+    } else if (style.style.textTransform === 'lowercase') {
+      displayText = style.preview.toLowerCase()
+    } else if (style.style.textTransform === 'capitalize') {
+      displayText = style.preview.replace(/\b\w/g, l => l.toUpperCase())
+    }
+
+    // Adjust positioning based on text alignment and category
+    let textX = centerX
+    let textY = centerY
+
+    // For display fonts, position them slightly higher and consider centering
+    if (style.category === 'Display') {
+      textY = centerY - 50 // Position display text higher
+      if (textProps.textAlign === 'center') {
+        // Text will be centered from its anchor point
+      }
+    }
+
+    // Add text to canvas
+    activeDesign.addText({ x: textX, y: textY }, textProps)
+
+    // Set the text content to the preview text
+    setTimeout(() => {
+      const activeObject = activeDesign.canvas?.getActiveObject()
+      if (activeObject && activeObject.type === 'i-text') {
+        ; (activeObject as any).set('text', displayText)
+        activeDesign.canvas?.requestRenderAll()
+      }
+    }, 10)
   }
 
   return (
@@ -546,31 +621,6 @@ export function TextsPanel({ onCollapse, className }: TextsPanelProps) {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="p-4 border-b border-gray-200">
-        <Button
-          className="w-full"
-          onClick={() => {
-            // Add a basic text element to canvas
-            handleAddTextToCanvas({
-              id: 'custom',
-              name: 'Custom Text',
-              category: 'Custom',
-              style: {
-                fontSize: '1rem',
-                fontWeight: 'normal',
-                fontFamily: 'Inter, sans-serif',
-                color: '#1f2937'
-              },
-              preview: 'Click to edit text'
-            })
-          }}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Text Element
-        </Button>
-      </div>
-
       {/* Text Styles List */}
       <div className="flex-1 overflow-auto p-4">
         <div className="space-y-3">
@@ -594,20 +644,6 @@ export function TextsPanel({ onCollapse, className }: TextsPanelProps) {
                 }}
               >
                 {style.preview}
-              </div>
-
-              {/* Style Info */}
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <div>
-                  <div className="font-medium text-gray-700">{style.name}</div>
-                  <div>{style.category}</div>
-                </div>
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button size="sm" variant="outline">
-                    <Plus className="h-3 w-3 mr-1" />
-                    Add
-                  </Button>
-                </div>
               </div>
 
               {/* Style Details */}

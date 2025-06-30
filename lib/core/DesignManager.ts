@@ -54,8 +54,8 @@ export class DesignManager {
     x: 0,
     y: 0,
     fill: '#ffffff',
-    stroke: '#e5e5e5',
-    strokeWidth: 0,
+    stroke: '#000000',
+    strokeWidth: 1,
     opacity: 1
   }
   public clippingEnabled: boolean = true
@@ -163,6 +163,22 @@ export class DesignManager {
 
     // Ensure canvas element can receive focus for keyboard events
     canvasElement.setAttribute('tabindex', '0')
+
+    // Add keyboard event listeners
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if Ctrl+D (or Cmd+D on Mac) is pressed for duplicate
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault()
+        this.duplicateActiveObject()
+      }
+    }
+
+    // Add event listeners to both document and canvas element
+    document.addEventListener('keydown', handleKeyDown)
+    canvasElement.addEventListener('keydown', handleKeyDown)
+
+      // Store references for cleanup
+      ; (this as any)._keydownHandler = handleKeyDown
   }
 
   private setupDragAndDrop() {
@@ -588,7 +604,6 @@ export class DesignManager {
       transparentCorners: false,
       cornerStyle: 'rect',
       borderScaleFactor: 2,
-      padding: 4
     })
     this.canvas.add(rect)
     this.canvas.setActiveObject(rect)
@@ -622,7 +637,6 @@ export class DesignManager {
       transparentCorners: false,
       cornerStyle: 'rect',
       borderScaleFactor: 2,
-      padding: 4
     })
     this.canvas.add(circle)
     this.canvas.setActiveObject(circle)
@@ -676,7 +690,6 @@ export class DesignManager {
       transparentCorners: false,
       cornerStyle: 'rect',
       borderScaleFactor: 2,
-      padding: 4
     })
     this.canvas.add(text)
     this.canvas.setActiveObject(text)
@@ -719,7 +732,6 @@ export class DesignManager {
         transparentCorners: false,
         cornerStyle: 'rect',
         borderScaleFactor: 2,
-        padding: 4
       })
 
       this.canvas.add(img)
@@ -765,6 +777,53 @@ export class DesignManager {
   }
 
   // --- Canvas Operations ---
+  public duplicateActiveObject = async () => {
+    if (!this.canvas) return null
+
+    const activeObject = this.canvas.getActiveObject()
+    if (!activeObject || (activeObject as any).isBaseLayer) return null
+
+    try {
+      // Clone the active object using the fabric clone method
+      const cloned = await activeObject.clone()
+
+      if (!this.canvas) return null
+
+      // Offset the cloned object slightly
+      const offset = 20
+      cloned.set({
+        left: (cloned.left || 0) + offset,
+        top: (cloned.top || 0) + offset,
+      })
+
+      // Add to canvas
+      this.canvas.add(cloned)
+      this.canvas.setActiveObject(cloned)
+
+      // Ensure base layer stays at bottom
+      if (this.baseLayer) {
+        this.canvas.sendObjectToBack(this.baseLayer)
+      }
+
+      this.canvas.renderAll()
+
+      // Add to layers
+      const originalLayer = this.layers.find(l => l.object === activeObject)
+      const layerName = originalLayer ? `${originalLayer.name} Copy` : 'Duplicated Object'
+      this.addLayer({
+        name: layerName,
+        object: cloned,
+        visible: true,
+        locked: false
+      })
+
+      return cloned
+    } catch (error) {
+      console.error('Error duplicating object:', error)
+      return null
+    }
+  }
+
   public clear = () => {
     if (!this.canvas) return
 
@@ -779,25 +838,82 @@ export class DesignManager {
 
   public exportCanvas = (format: 'png' | 'jpg' | 'svg' | 'json'): string | object => {
     if (!this.canvas) return ''
-    switch (format) {
-      case 'png':
-        return this.canvas.toDataURL({ format: 'png', multiplier: 1 })
-      case 'jpg':
-        return this.canvas.toDataURL({ format: 'jpeg', multiplier: 1 })
-      case 'svg':
-        return this.canvas.toSVG()
-      case 'json':
-        return this.canvas.toJSON() // Consider enhancing to export full design state
-      default:
-        return ''
+
+    // For PNG and JPG, we need to reset the viewport to export the base layer area correctly
+    if (format === 'png' || format === 'jpg') {
+      const originalTransform = this.canvas.viewportTransform
+      // Reset viewport to default (no pan, no zoom)
+      this.canvas.setViewportTransform([1, 0, 0, 1, 0, 0])
+
+      const exportOptions = {
+        left: this.baseLayerConfig.x,
+        top: this.baseLayerConfig.y,
+        width: this.baseLayerConfig.width,
+        height: this.baseLayerConfig.height,
+        multiplier: 1,
+      }
+
+      let dataURL;
+      if (format === 'png') {
+        const originalBackgroundColor = this.canvas.backgroundColor;
+        // Temporarily set background to transparent for PNG export if base layer is transparent
+        if (this.baseLayerConfig.opacity === 0) {
+          this.canvas.backgroundColor = 'transparent';
+          this.baseLayer?.set('visible', false)
+          this.canvas.renderAll()
+        }
+
+        dataURL = this.canvas.toDataURL({ format: 'png', ...exportOptions });
+
+        // Restore original background color
+        this.baseLayer?.set('visible', true)
+        this.canvas.backgroundColor = originalBackgroundColor;
+      } else { // jpg
+        dataURL = this.canvas.toDataURL({ format: 'jpeg', quality: 0.8, ...exportOptions });
+      }
+
+      // Restore original viewport transform
+      if (originalTransform) {
+        this.canvas.setViewportTransform(originalTransform)
+      }
+      this.canvas.renderAll()
+
+      return dataURL
     }
+
+    // For SVG, viewBox can handle the clipping without changing viewport
+    if (format === 'svg') {
+      return this.canvas.toSVG({
+        width: this.baseLayerConfig.width.toString(),
+        height: this.baseLayerConfig.height.toString(),
+        viewBox: {
+          x: this.baseLayerConfig.x,
+          y: this.baseLayerConfig.y,
+          width: this.baseLayerConfig.width,
+          height: this.baseLayerConfig.height,
+        },
+      })
+    }
+
+    if (format === 'json') {
+      return this.canvas.toJSON() // Consider enhancing to export full design state
+    }
+
+    return ''
   }
 
   // --- Cleanup ---
   public dispose() {
-    // Remove event listeners
-    // document.removeEventListener('keydown', this.handleKeyDown)
-    // document.removeEventListener('keyup', this.handleKeyUp)
+    // Remove keyboard event listeners
+    const keydownHandler = (this as any)._keydownHandler
+    if (keydownHandler) {
+      document.removeEventListener('keydown', keydownHandler)
+      const canvasElement = this.canvas?.getElement()
+      if (canvasElement) {
+        canvasElement.removeEventListener('keydown', keydownHandler)
+      }
+      delete (this as any)._keydownHandler
+    }
 
     if (this.canvas) {
       this.canvas.dispose()

@@ -97,7 +97,6 @@ const fontFamilies = [
   'Lexend',
   'Rubik',
   'Outfit',
-  'Barlow',
   'Quicksand',
   'Comfortaa',
   'Ubuntu',

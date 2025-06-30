@@ -54,6 +54,9 @@ export interface CanvasActions {
   setSelectedTool: (tool: ToolType) => void
   setIsDrawing: (isDrawing: boolean) => void
 
+  // Object operations
+  duplicateActiveObject: () => Promise<void>
+
   // Properties
   setFillColor: (color: string) => void
   setStrokeColor: (color: string) => void
@@ -221,6 +224,14 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
   // Tool and drawing state
   setSelectedTool: (tool) => set({ selectedTool: tool }),
   setIsDrawing: (isDrawing) => set({ isDrawing }),
+
+  // Object operations
+  duplicateActiveObject: async () => {
+    const design = get().getActiveDesign()
+    if (design) {
+      await design.duplicateActiveObject()
+    }
+  },
 
   // Properties
   setFillColor: (color) => set({ fillColor: color }),
@@ -415,6 +426,15 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
           design.removeLayer(layerToRemove.id)
         }
         return { success: true, data: 'Deleted selected object' }
+      } else if (toolName === 'duplicateSelectedObject') {
+        const activeObject = design.canvas.getActiveObject()
+        if (!activeObject || (activeObject as any).isBaseLayer) {
+          return { success: false, data: 'No object selected or cannot duplicate base layer' }
+        }
+        design.duplicateActiveObject().then(() => {
+          // Duplication is async, so we don't wait for it in this synchronous context
+        })
+        return { success: true, data: 'Duplicating selected object' }
       }
     } catch (error) {
       console.error('Error executing canvas tool:', error)

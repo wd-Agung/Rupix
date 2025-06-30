@@ -79,9 +79,8 @@ function initAligningGuidelines(canvas: fabric.Canvas) {
     const activeObjectCenter = activeObject.getCenterPoint()
     const activeObjectLeft = activeObjectCenter.x
     const activeObjectTop = activeObjectCenter.y
-    const activeObjectBoundingRect = activeObject.getBoundingRect()
-    const activeObjectHeight = activeObjectBoundingRect.height / viewportTransform[3]!
-    const activeObjectWidth = activeObjectBoundingRect.width / viewportTransform[0]!
+    const activeObjectHeight = activeObject.getScaledHeight()
+    const activeObjectWidth = activeObject.getScaledWidth()
     let horizontalInTheRange = false
     let verticalInTheRange = false
     const transform = canvas._currentTransform
@@ -92,7 +91,7 @@ function initAligningGuidelines(canvas: fabric.Canvas) {
     // but we're not doing it here for perf. reasons -- as this a function that's invoked on every mouse move
 
     for (let i = canvasObjects.length; i--;) {
-       
+
       if (canvasObjects[i] === activeObject) continue
 
       // // Exclude guide lines
@@ -103,12 +102,12 @@ function initAligningGuidelines(canvas: fabric.Canvas) {
       //   continue
       // }
 
-      const objectCenter = canvasObjects[i]!.getCenterPoint()
+      const object = canvasObjects[i]!
+      const objectCenter = object.getCenterPoint()
       const objectLeft = objectCenter.x
       const objectTop = objectCenter.y
-      const objectBoundingRect = canvasObjects[i]!.getBoundingRect()
-      const objectHeight = objectBoundingRect.height / viewportTransform[3]!
-      const objectWidth = objectBoundingRect.width / viewportTransform[0]!
+      const objectHeight = object.getScaledHeight()
+      const objectWidth = object.getScaledWidth()
 
       // snap by the horizontal center line
       if (isInRange(objectLeft, activeObjectLeft)) {

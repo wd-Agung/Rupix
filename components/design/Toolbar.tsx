@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useDesignStore, type ToolType } from '@/lib/stores/design-store'
@@ -8,10 +9,10 @@ import { cn } from '@/lib/utils'
 import {
   Circle,
   Copy,
+  Download,
   Focus,
   Image,
   MousePointer,
-  Pen,
   Redo,
   Square,
   Trash2,
@@ -29,7 +30,6 @@ const tools = [
   { id: 'circle' as ToolType, icon: Circle, label: 'Circle' },
   { id: 'text' as ToolType, icon: Type, label: 'Text' },
   { id: 'image' as ToolType, icon: Image, label: 'Image' },
-  { id: 'pen' as ToolType, icon: Pen, label: 'Pen' },
 ]
 
 export function Toolbar({ className }: ToolbarProps) {
@@ -39,6 +39,7 @@ export function Toolbar({ className }: ToolbarProps) {
     getActiveDesign,
     cameraLocked,
     setCameraLocked,
+    duplicateActiveObject,
   } = useDesignStore()
 
   const activeDesign = getActiveDesign()
@@ -117,7 +118,12 @@ export function Toolbar({ className }: ToolbarProps) {
     }
   }
 
+  const handleDuplicate = async () => {
+    await duplicateActiveObject()
+  }
+
   const isDisabled = !activeTab
+  const hasActiveObject = activeDesign?.canvas?.getActiveObject() && !(activeDesign.canvas.getActiveObject() as any)?.isBaseLayer
 
   return (
     <TooltipProvider>
@@ -174,7 +180,12 @@ export function Toolbar({ className }: ToolbarProps) {
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" disabled>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDuplicate}
+                disabled={isDisabled || !hasActiveObject}
+              >
                 <Copy className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
@@ -205,6 +216,39 @@ export function Toolbar({ className }: ToolbarProps) {
             </TooltipContent>
           </Tooltip>
         </div>
+
+        <Separator orientation="vertical" className="h-6" />
+
+        {/* Export options */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="sm" disabled={isDisabled}>
+              <Download className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-40">
+            <div className="grid gap-2">
+              <div className="p-2 text-sm font-medium">Export</div>
+              <Separator />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => handleExport('png')}
+              >
+                PNG
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => handleExport('jpg')}
+              >
+                JPG
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
 
         <Separator orientation="vertical" className="h-6" />
 

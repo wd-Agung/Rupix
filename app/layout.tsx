@@ -3,9 +3,7 @@ import {
   Anton,
   // Display & Decorative Fonts
   Archivo_Black,
-  Barlow,
   Bebas_Neue,
-  Comfortaa,
   Cormorant_Garamond,
   Crimson_Text,
   Dancing_Script,
@@ -192,19 +190,8 @@ const rubik = Rubik({
   subsets: ["latin"],
 });
 
-const barlow = Barlow({
-  variable: "--font-barlow",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
-});
-
 const quicksand = Quicksand({
   variable: "--font-quicksand",
-  subsets: ["latin"],
-});
-
-const comfortaa = Comfortaa({
-  variable: "--font-comfortaa",
   subsets: ["latin"],
 });
 
@@ -331,7 +318,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${poppins.variable} ${montserrat.variable} ${playfairDisplay.variable} ${merriweather.variable} ${oswald.variable} ${raleway.variable} ${lato.variable} ${openSans.variable} ${nunitoSans.variable} ${lora.variable} ${crimsonText.variable} ${bebasNeue.variable} ${firaCode.variable} ${sourceCodePro.variable} ${workSans.variable} ${dmSans.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${outfit.variable} ${manrope.variable} ${ibmPlexSans.variable} ${lexend.variable} ${rubik.variable} ${barlow.variable} ${quicksand.variable} ${comfortaa.variable} ${exo2.variable} ${kanit.variable} ${ubuntu.variable} ${sourceSans3.variable} ${robotoCondensed.variable} ${libreBaskerville.variable} ${cormorantGaramond.variable} ${ebGaramond.variable} ${spectral.variable} ${zillaSlab.variable} ${robotoSlab.variable} ${archivoBlack.variable} ${anton.variable} ${fjallaOne.variable} ${righteous.variable} ${fredoka.variable} ${lobster.variable} ${pacifico.variable} ${dancingScript.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${poppins.variable} ${montserrat.variable} ${playfairDisplay.variable} ${merriweather.variable} ${oswald.variable} ${raleway.variable} ${lato.variable} ${openSans.variable} ${nunitoSans.variable} ${lora.variable} ${crimsonText.variable} ${bebasNeue.variable} ${firaCode.variable} ${sourceCodePro.variable} ${workSans.variable} ${dmSans.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${outfit.variable} ${manrope.variable} ${ibmPlexSans.variable} ${lexend.variable} ${rubik.variable} ${quicksand.variable} ${exo2.variable} ${kanit.variable} ${ubuntu.variable} ${sourceSans3.variable} ${robotoCondensed.variable} ${libreBaskerville.variable} ${cormorantGaramond.variable} ${ebGaramond.variable} ${spectral.variable} ${zillaSlab.variable} ${robotoSlab.variable} ${archivoBlack.variable} ${anton.variable} ${fjallaOne.variable} ${righteous.variable} ${fredoka.variable} ${lobster.variable} ${pacifico.variable} ${dancingScript.variable} antialiased`}
       >
         {children}
       </body>
