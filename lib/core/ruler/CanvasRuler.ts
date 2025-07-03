@@ -31,16 +31,10 @@ export class CanvasRuler {
 
   public enable() {
     this.canvas.on('after:render', this.render);
-    // this.canvas.on('mouse:down', this.handleMouseDown);
-    // this.canvas.on('mouse:move', this.handleMouseMove);
-    // this.canvas.on('mouse:up', this.handleMouseUp);
   }
 
   public disable() {
     this.canvas.off('after:render', this.render);
-    // this.canvas.off('mouse:down', this.handleMouseDown);
-    // this.canvas.off('mouse:move', this.handleMouseMove);
-    // this.canvas.off('mouse:up', this.handleMouseUp);
   }
 
   public isPointOnRuler(p: MouseEvent): 'horizontal' | 'vertical' | null {
@@ -246,42 +240,4 @@ export class CanvasRuler {
     if (zoom > 0.5) return 100;
     return 200;
   }
-
-  // private handleMouseDown = (opt: TEvent) => {
-  //   const e = opt.e as MouseEvent;
-  //   const rulerClicked = this.isPointOnRuler(e);
-
-  //   if (rulerClicked) {
-  //     this.isDragging = true;
-  //     const pointer = this.canvas.getPointer(e);
-  //     this.tempGuideline = new GuideLine({
-  //       axis: rulerClicked,
-  //     });
-  //     this.tempGuideline.set({
-  //       left: pointer.x,
-  //       top: pointer.y,
-  //     });
-  //     this.canvas.add(this.tempGuideline);
-  //   }
-  // };
-
-  // private handleMouseMove = (opt: TEvent) => {
-  //   if (this.isDragging && this.tempGuideline) {
-  //     const pointer = this.canvas.getPointer(opt.e);
-  //     if (this.tempGuideline.axis === 'horizontal') {
-  //       this.tempGuideline.set({ top: pointer.y });
-  //     } else {
-  //       this.tempGuideline.set({ left: pointer.x });
-  //     }
-  //     this.canvas.renderAll();
-  //   }
-  // };
-
-  // private handleMouseUp = () => {
-  //   if (this.isDragging && this.tempGuideline) {
-  //     this.tempGuideline.setCoords();
-  //     this.isDragging = false;
-  //     this.tempGuideline = null;
-  //   }
-  // };
 } 
