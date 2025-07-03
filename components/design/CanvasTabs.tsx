@@ -165,7 +165,7 @@ export function CanvasTabs({ children, className }: CanvasTabsProps) {
                 <DialogTitle>Create New Canvas</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <div>
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="canvas-name">Canvas Name (optional)</Label>
                   <Input
                     id="canvas-name"
