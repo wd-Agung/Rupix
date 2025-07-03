@@ -1544,9 +1544,12 @@ export class DesignManager {
 
     const objects = this.canvas?.getObjects()
     if (objects) {
+      // set control options, somehow the control options are not set when loading from JSON
       objects.forEach(obj => {
         obj.set(controlOptions)
       })
+
+      // update layers array
       this.layers = objects.filter(obj => !(obj instanceof BaseLayer)).map(obj => {
         return {
           id: obj.layerId ?? uuidv4(),
