@@ -47,6 +47,10 @@ export function Toolbar({ className }: ToolbarProps) {
 
   const handleToolSelect = (tool: ToolType) => {
     setSelectedTool(tool)
+    // Also update the active design's selected tool for cursor management
+    if (activeDesign) {
+      activeDesign.setSelectedTool(tool)
+    }
   }
 
   const handleClearCanvas = () => {
@@ -78,35 +82,7 @@ export function Toolbar({ className }: ToolbarProps) {
     }
   }
 
-  const handleImageUpload = () => {
-    if (!activeDesign) return
 
-    // Create file input for image upload
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
-    input.multiple = true
-
-    input.onchange = (e) => {
-      const files = (e.target as HTMLInputElement).files
-      if (files) {
-        Array.from(files).forEach(file => {
-          if (file.type.startsWith('image/')) {
-            const reader = new FileReader()
-            reader.onload = (e) => {
-              const result = e.target?.result as string
-              if (result) {
-                activeDesign.addImageFromDataURL(result, file.name)
-              }
-            }
-            reader.readAsDataURL(file)
-          }
-        })
-      }
-    }
-
-    input.click()
-  }
 
   const handleCameraLockToggle = () => {
     const newLockState = !cameraLocked
@@ -226,10 +202,8 @@ export function Toolbar({ className }: ToolbarProps) {
               <Download className="h-4 w-4" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-40">
+          <PopoverContent className="w-fit p-2">
             <div className="grid gap-2">
-              <div className="p-2 text-sm font-medium">Export</div>
-              <Separator />
               <Button
                 variant="ghost"
                 size="sm"

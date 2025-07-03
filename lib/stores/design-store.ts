@@ -9,6 +9,10 @@ export interface CanvasState {
   activeDesignId: string | null
   selectedTool: ToolType
   isDrawing: boolean
+  // Drawing state for drag-to-create objects
+  drawingStartPoint: { x: number; y: number } | null
+  drawingCurrentPoint: { x: number; y: number } | null
+  drawingPreviewObject: fabric.Object | null
   fillColor: string
   strokeColor: string
   strokeWidth: number
@@ -53,6 +57,11 @@ export interface CanvasActions {
   // Tool and drawing state
   setSelectedTool: (tool: ToolType) => void
   setIsDrawing: (isDrawing: boolean) => void
+  // Drawing state actions
+  setDrawingStartPoint: (point: { x: number; y: number } | null) => void
+  setDrawingCurrentPoint: (point: { x: number; y: number } | null) => void
+  setDrawingPreviewObject: (object: fabric.Object | null) => void
+  resetDrawingState: () => void
 
   // Object operations
   duplicateActiveObject: () => Promise<void>
@@ -95,6 +104,9 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
   activeDesignId: null,
   selectedTool: 'select',
   isDrawing: false,
+  drawingStartPoint: null,
+  drawingCurrentPoint: null,
+  drawingPreviewObject: null,
   fillColor: '#000000',
   strokeColor: 'transparent',
   strokeWidth: 0,
@@ -210,8 +222,14 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         options.onStateChange
       )
 
+      // Sync current selected tool with the design
+      const currentState = get()
+      design.setSelectedTool(currentState.selectedTool)
+
       design.canvas?.on('tool_change', (e) => {
         set({ selectedTool: e.tool })
+        // Also sync the tool with the design manager
+        design.setSelectedTool(e.tool)
       })
     }
   },
@@ -222,8 +240,25 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
   },
 
   // Tool and drawing state
-  setSelectedTool: (tool) => set({ selectedTool: tool }),
+  setSelectedTool: (tool) => {
+    // Reset drawing state when changing tools
+    get().resetDrawingState()
+    // Remove preview object if exists
+    const design = get().getActiveDesign()
+    const previewObject = get().drawingPreviewObject
+    if (design?.canvas && previewObject) {
+      design.canvas.remove(previewObject)
+      design.canvas.renderAll()
+    }
+    set({ selectedTool: tool })
+  },
   setIsDrawing: (isDrawing) => set({ isDrawing }),
+
+  // Drawing state actions
+  setDrawingStartPoint: (point) => set({ drawingStartPoint: point }),
+  setDrawingCurrentPoint: (point) => set({ drawingCurrentPoint: point }),
+  setDrawingPreviewObject: (object) => set({ drawingPreviewObject: object }),
+  resetDrawingState: () => set({ drawingStartPoint: null, drawingCurrentPoint: null, drawingPreviewObject: null }),
 
   // Object operations
   duplicateActiveObject: async () => {

@@ -69,6 +69,11 @@ export class DesignManager {
   public fontFamily = 'Inter'
   public opacity = 1
 
+  // Drawing state for drag-to-create objects
+  public isDrawingObject = false
+  public drawingStartPoint: { x: number; y: number } | null = null
+  public drawingPreviewObject: fabric.Object | null = null
+
   // Text formatting properties
   public fontWeight = 'normal'
   public fontStyle = 'normal'
@@ -146,14 +151,22 @@ export class DesignManager {
     if (!this.canvas) return
 
     this.canvas.on('mouse:wheel', this.handleZoom)
-    this.canvas.on('mouse:down', this.handleToolMouseDown)
+    this.canvas.on('mouse:down', this.handleMouseDown)
+    this.canvas.on('mouse:move', this.handleMouseMove)
+    this.canvas.on('mouse:up', this.handleMouseUp)
     this.canvas.on('object:moving', this.handleObjectMoving)
+    this.canvas.on('selection:created', this.updateCursor)
+    this.canvas.on('selection:cleared', this.updateCursor)
+    this.canvas.on('selection:updated', this.updateCursor)
 
     // Add drag and drop support
     this.setupDragAndDrop()
 
     // Add clipboard paste support
     this.setupClipboardPaste()
+
+    // Initial cursor setup
+    this.updateCursor()
   }
 
   private setupKeyboardListeners() {
@@ -307,6 +320,30 @@ export class DesignManager {
     })
   }
 
+  private updateCursor = () => {
+    if (!this.canvas) return
+
+    // Set cursor based on selected tool
+    let cursor = 'default'
+
+    if (this.selectedTool !== 'select') {
+      cursor = 'crosshair'
+    } else {
+      // Use default cursor behavior for select tool
+      const activeObject = this.canvas.getActiveObject()
+      cursor = activeObject ? 'move' : 'default'
+    }
+
+    this.canvas.defaultCursor = cursor
+    this.canvas.hoverCursor = cursor
+
+    // Apply cursor to canvas element
+    const canvasElement = this.canvas.getElement()
+    if (canvasElement) {
+      canvasElement.style.cursor = cursor
+    }
+  }
+
   private handleZoom = (opt: fabric.TEvent<WheelEvent>) => {
     if (!this.canvas) return
     const event = opt.e
@@ -356,18 +393,206 @@ export class DesignManager {
     }
   }
 
-  private handleToolMouseDown = (opt: fabric.TEvent) => {
-    if (this.selectedTool === 'select' || (opt.e as MouseEvent).altKey || !this.canvas) {
+  private handleMouseDown = (opt: fabric.TEvent) => {
+    if (!this.canvas) return
+
+    // Handle tool-specific behavior
+    if (this.selectedTool !== 'select' && !(opt.e as MouseEvent).altKey) {
+      // Prevent default to avoid unwanted browser behaviors during drawing
+      opt.e.preventDefault()
+
+      const pointer = this.canvas.getScenePoint(opt.e)
+
+      // Special handling for text tool - create immediately
+      if (this.selectedTool === 'text') {
+        this.createTextAtPoint(pointer)
+        return
+      }
+
+      // Start drawing for rectangle, circle, and image
+      if (this.selectedTool === 'rectangle' || this.selectedTool === 'circle' || this.selectedTool === 'image') {
+        this.startDrawing(pointer)
+        return
+      }
+    }
+  }
+
+  private handleMouseMove = (opt: fabric.TEvent) => {
+    if (!this.canvas || !this.isDrawingObject || !this.drawingStartPoint) return
+
+    opt.e.preventDefault()
+    const pointer = this.canvas.getScenePoint(opt.e)
+    this.updateDrawingPreview(pointer)
+  }
+
+  private handleMouseUp = (opt: fabric.TEvent) => {
+    if (!this.canvas || !this.isDrawingObject) return
+
+    opt.e.preventDefault()
+    const pointer = this.canvas.getScenePoint(opt.e)
+    this.finishDrawing(pointer)
+  }
+
+  private handleObjectMoving = (opt: { target?: fabric.Object }) => {
+    const obj = opt.target
+    if (!obj || !this.canvas) return
+    obj.setCoords()
+  }
+
+  // --- Drawing Methods ---
+  private startDrawing = (point: { x: number; y: number }) => {
+    this.isDrawingObject = true
+    this.drawingStartPoint = point
+
+    // Create preview object
+    this.createDrawingPreview(point, point)
+  }
+
+  private updateDrawingPreview = (currentPoint: { x: number; y: number }) => {
+    if (!this.drawingStartPoint) return
+
+    // Remove existing preview
+    if (this.drawingPreviewObject && this.canvas) {
+      this.canvas.remove(this.drawingPreviewObject)
+    }
+
+    // Create new preview with current dimensions
+    this.createDrawingPreview(this.drawingStartPoint, currentPoint)
+  }
+
+  private createDrawingPreview = (startPoint: { x: number; y: number }, endPoint: { x: number; y: number }) => {
+    if (!this.canvas) return
+
+    const left = Math.min(startPoint.x, endPoint.x)
+    const top = Math.min(startPoint.y, endPoint.y)
+    const width = Math.abs(endPoint.x - startPoint.x)
+    const height = Math.abs(endPoint.y - startPoint.y)
+
+    // Minimum size to make drawing visible
+    const minSize = 5
+    const finalWidth = Math.max(width, minSize)
+    const finalHeight = Math.max(height, minSize)
+
+    let previewObject: fabric.Object
+
+    if (this.selectedTool === 'rectangle') {
+      previewObject = new fabric.Rect({
+        left,
+        top,
+        width: finalWidth,
+        height: finalHeight,
+        fill: 'transparent',
+        stroke: '#3b82f6',
+        strokeWidth: 1,
+        strokeDashArray: [4, 4],
+        selectable: false,
+        evented: false,
+        opacity: 0.8
+      })
+    } else if (this.selectedTool === 'circle') {
+      const radius = Math.min(finalWidth, finalHeight) / 2
+      previewObject = new fabric.Circle({
+        left: left + finalWidth / 2 - radius,
+        top: top + finalHeight / 2 - radius,
+        radius,
+        fill: 'transparent',
+        stroke: '#3b82f6',
+        strokeWidth: 1,
+        strokeDashArray: [4, 4],
+        selectable: false,
+        evented: false,
+        opacity: 0.8
+      })
+    } else if (this.selectedTool === 'image') {
+      // Create a group with rectangle and text for image preview
+      const rect = new fabric.Rect({
+        left: 0,
+        top: 0,
+        width: finalWidth,
+        height: finalHeight,
+        fill: 'rgba(59, 130, 246, 0.1)',
+        stroke: '#3b82f6',
+        strokeWidth: 1,
+        strokeDashArray: [4, 4],
+        selectable: false,
+        evented: false,
+        opacity: 0.8
+      })
+
+      const text = new fabric.Text('📷', {
+        left: finalWidth / 2,
+        top: finalHeight / 2,
+        fontSize: Math.min(finalWidth, finalHeight) * 0.3,
+        fill: '#3b82f6',
+        textAlign: 'center',
+        originX: 'center',
+        originY: 'center',
+        selectable: false,
+        evented: false,
+        opacity: 0.6
+      })
+
+      previewObject = new fabric.Group([rect, text], {
+        left,
+        top,
+        selectable: false,
+        evented: false,
+      })
+    } else {
       return
     }
-    // get mouse position
-    const pointer = this.canvas.getScenePoint(opt.e)
-    const props = {
-      fill: this.fillColor,
-      stroke: this.strokeColor,
-      strokeWidth: this.strokeWidth,
-      opacity: this.opacity,
+
+    this.drawingPreviewObject = previewObject
+    this.canvas.add(previewObject)
+    this.canvas.renderAll()
+  }
+
+  private finishDrawing = (endPoint: { x: number; y: number }) => {
+    if (!this.canvas || !this.drawingStartPoint) return
+
+    // Remove preview object
+    if (this.drawingPreviewObject) {
+      this.canvas.remove(this.drawingPreviewObject)
+      this.drawingPreviewObject = null
     }
+
+    const left = Math.min(this.drawingStartPoint.x, endPoint.x)
+    const top = Math.min(this.drawingStartPoint.y, endPoint.y)
+    const width = Math.abs(endPoint.x - this.drawingStartPoint.x)
+    const height = Math.abs(endPoint.y - this.drawingStartPoint.y)
+
+    // Only create object if minimum size is met
+    const minSize = 10
+    if (width >= minSize && height >= minSize) {
+      const props = {
+        fill: this.fillColor,
+        stroke: this.strokeColor,
+        strokeWidth: this.strokeWidth,
+        opacity: this.opacity,
+      }
+
+      if (this.selectedTool === 'rectangle') {
+        this.addRectangleWithDimensions({ x: left, y: top }, width, height, props)
+      } else if (this.selectedTool === 'circle') {
+        const radius = Math.min(width, height) / 2
+        const centerX = left + width / 2
+        const centerY = top + height / 2
+        this.addCircleWithDimensions({ x: centerX - radius, y: centerY - radius }, radius, props)
+      } else if (this.selectedTool === 'image') {
+        // For image tool, trigger file upload with the specified dimensions
+        this.triggerImageUploadWithDimensions({ x: left, y: top }, width, height)
+      }
+    }
+
+    // Reset drawing state
+    this.isDrawingObject = false
+    this.drawingStartPoint = null
+    this.selectedTool = 'select'
+    this.canvas.fire('tool_change', { tool: this.selectedTool })
+    this.updateCursor()
+  }
+
+  private createTextAtPoint = (point: { x: number; y: number }) => {
     const textProps = {
       fontSize: this.fontSize,
       fontFamily: this.fontFamily,
@@ -383,25 +608,10 @@ export class DesignManager {
       backgroundColor: this.backgroundColor,
     }
 
-    switch (this.selectedTool) {
-      case 'rectangle': this.addRectangle({ x: pointer.x, y: pointer.y }, props); break
-      case 'circle': this.addCircle({ x: pointer.x, y: pointer.y }, props); break
-      case 'text': this.addText({ x: pointer.x, y: pointer.y }, textProps); break
-      case 'image':
-        // For image tool, we'll trigger the file input dialog
-        this.triggerImageUpload(pointer)
-        break
-    }
-
+    this.addText(point, textProps)
     this.selectedTool = 'select'
-    console.log('tool_change in handleToolMouseDown', this.selectedTool)
-    this.canvas.fire('tool_change', { tool: this.selectedTool })
-  }
-
-  private handleObjectMoving = (opt: { target?: fabric.Object }) => {
-    const obj = opt.target
-    if (!obj || !this.canvas) return
-    obj.setCoords()
+    this.canvas?.fire('tool_change', { tool: this.selectedTool })
+    this.updateCursor()
   }
 
   // --- Base Layer Management ---
@@ -617,6 +827,42 @@ export class DesignManager {
     this.addLayer({ name: 'Rectangle', object: rect, visible: true, locked: false })
   }
 
+  public addRectangleWithDimensions(
+    pos: { x: number; y: number },
+    width: number,
+    height: number,
+    props: { fill: string; stroke: string; strokeWidth: number; opacity: number }
+  ) {
+    if (!this.canvas) return
+    const rect = new fabric.Rect({
+      left: pos.x,
+      top: pos.y,
+      width,
+      height,
+      fill: props.fill,
+      stroke: props.stroke,
+      strokeWidth: props.strokeWidth,
+      opacity: props.opacity,
+      cornerColor: '#ffffff',
+      cornerStrokeColor: '#3b82f6',
+      borderColor: '#3b82f6',
+      cornerSize: 8,
+      transparentCorners: false,
+      cornerStyle: 'rect',
+      borderScaleFactor: 2,
+    })
+    this.canvas.add(rect)
+    this.canvas.setActiveObject(rect)
+
+    // Ensure base layer stays at bottom
+    if (this.baseLayer) {
+      this.canvas.sendObjectToBack(this.baseLayer)
+    }
+
+    this.canvas.renderAll()
+    this.addLayer({ name: 'Rectangle', object: rect, visible: true, locked: false })
+  }
+
   public addCircle(
     pos: { x: number; y: number },
     props: { fill: string; stroke: string; strokeWidth: number; opacity: number }
@@ -629,6 +875,40 @@ export class DesignManager {
       fill: props.fill,
       stroke: '#000000',
       strokeWidth: 1,
+      opacity: props.opacity,
+      cornerColor: '#ffffff',
+      cornerStrokeColor: '#3b82f6',
+      borderColor: '#3b82f6',
+      cornerSize: 8,
+      transparentCorners: false,
+      cornerStyle: 'rect',
+      borderScaleFactor: 2,
+    })
+    this.canvas.add(circle)
+    this.canvas.setActiveObject(circle)
+
+    // Ensure base layer stays at bottom
+    if (this.baseLayer) {
+      this.canvas.sendObjectToBack(this.baseLayer)
+    }
+
+    this.canvas.renderAll()
+    this.addLayer({ name: 'Circle', object: circle, visible: true, locked: false })
+  }
+
+  public addCircleWithDimensions(
+    pos: { x: number; y: number },
+    radius: number,
+    props: { fill: string; stroke: string; strokeWidth: number; opacity: number }
+  ) {
+    if (!this.canvas) return
+    const circle = new fabric.Circle({
+      left: pos.x,
+      top: pos.y,
+      radius,
+      fill: props.fill,
+      stroke: props.stroke,
+      strokeWidth: props.strokeWidth,
       opacity: props.opacity,
       cornerColor: '#ffffff',
       cornerStrokeColor: '#3b82f6',
@@ -749,6 +1029,47 @@ export class DesignManager {
     })
   }
 
+  public addImageFromDataURLWithDimensions(dataUrl: string, name: string, position: { x: number; y: number }, width: number, height: number) {
+    if (!this.canvas) return
+
+    fabric.Image.fromURL(dataUrl, {
+      crossOrigin: 'anonymous'
+    }).then((img: fabric.Image) => {
+      if (!img || !this.canvas) return
+
+      // Calculate scale to fit the specified dimensions
+      const scaleX = width / img.width!
+      const scaleY = height / img.height!
+
+      img.set({
+        left: position.x,
+        top: position.y,
+        scaleX: scaleX,
+        scaleY: scaleY,
+        cornerColor: '#ffffff',
+        cornerStrokeColor: '#3b82f6',
+        borderColor: '#3b82f6',
+        cornerSize: 8,
+        transparentCorners: false,
+        cornerStyle: 'rect',
+        borderScaleFactor: 2,
+      })
+
+      this.canvas.add(img)
+      this.canvas.setActiveObject(img)
+
+      // Ensure base layer stays at bottom
+      if (this.baseLayer) {
+        this.canvas.sendObjectToBack(this.baseLayer)
+      }
+
+      this.canvas.renderAll()
+      this.addLayer({ name: name || 'Image', object: img, visible: true, locked: false })
+    }).catch((error) => {
+      console.error('Failed to load image:', error)
+    })
+  }
+
   private triggerImageUpload(position: { x: number; y: number }) {
     // Create file input for image upload
     const input = document.createElement('input')
@@ -766,6 +1087,33 @@ export class DesignManager {
             const result = e.target?.result as string
             if (result) {
               this.addImageFromDataURL(result, file.name, position)
+            }
+          }
+          reader.readAsDataURL(file)
+        }
+      }
+    }
+
+    input.click()
+  }
+
+  private triggerImageUploadWithDimensions(position: { x: number; y: number }, width: number, height: number) {
+    // Create file input for image upload
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.multiple = false
+
+    input.onchange = (e) => {
+      const files = (e.target as HTMLInputElement).files
+      if (files && files[0]) {
+        const file = files[0]
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader()
+          reader.onload = (e) => {
+            const result = e.target?.result as string
+            if (result) {
+              this.addImageFromDataURLWithDimensions(result, file.name, position, width, height)
             }
           }
           reader.readAsDataURL(file)
@@ -924,7 +1272,10 @@ export class DesignManager {
   }
 
   // --- Property Setters ---
-  public setSelectedTool = (tool: ToolType) => { this.selectedTool = tool }
+  public setSelectedTool = (tool: ToolType) => {
+    this.selectedTool = tool
+    this.updateCursor()
+  }
   public setFillColor = (color: string) => { this.fillColor = color }
   public setStrokeColor = (color: string) => { this.strokeColor = color }
   public setStrokeWidth = (width: number) => { this.strokeWidth = width }
