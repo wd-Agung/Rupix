@@ -218,6 +218,9 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
           height: options.canvasHeight,
           backgroundColor: options.backgroundColor,
           preserveObjectStacking: true,
+          selectionColor: 'rgba(14, 152, 252, 0.2)',
+          selectionLineWidth: 2,
+          selectionBorderColor: 'rgba(14, 152, 252, 0.8)',
         } as fabric.CanvasOptions,
         options.onStateChange
       )

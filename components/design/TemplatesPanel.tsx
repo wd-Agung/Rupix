@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { FileText, Filter, MoreHorizontal, Search } from 'lucide-react'
+import { Clock, FileText, Filter, MoreHorizontal, Search } from 'lucide-react'
 import { useState } from 'react'
 
 interface TemplatesPanelProps {
@@ -84,7 +84,7 @@ export function TemplatesPanel({ onCollapse, className }: TemplatesPanelProps) {
   }
 
   return (
-    <div className={cn('flex flex-col h-full bg-white', className)}>
+    <div className={cn('flex flex-col h-full bg-white relative', className)}>
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-3">
@@ -200,6 +200,19 @@ export function TemplatesPanel({ onCollapse, className }: TemplatesPanelProps) {
             )}
           </div>
         )}
+      </div>
+
+      {/* Coming Soon Overlay */}
+      <div className="absolute inset-0 bg-white/0 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="text-center p-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+            <Clock className="h-8 w-8 text-blue-600" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">Coming Soon</h3>
+          <p className="text-gray-600 max-w-sm mx-auto">
+            We're working hard to bring you an amazing templates experience. Stay tuned!
+          </p>
+        </div>
       </div>
     </div>
   )
