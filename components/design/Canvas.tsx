@@ -91,7 +91,6 @@ export function Canvas({ className, width, height, onStateChange }: CanvasProps)
         canvasEl,
         canvasWidth,
         canvasHeight,
-        backgroundColor: '#f1f5f9',
         onStateChange: onStateChange || (() => { }),
       },
     )
@@ -106,7 +105,7 @@ export function Canvas({ className, width, height, onStateChange }: CanvasProps)
     <div
       key={activeDesignId}
       ref={containerRef}
-      className={cn('relative w-full h-full checkerboard', className)}
+      className={cn('relative w-full h-full', className)}
       style={{ cursor: selectedTool === 'select' ? 'default' : 'crosshair' }}
       tabIndex={0}
       onFocus={() => {

@@ -1,5 +1,17 @@
 import * as fabric from 'fabric'
 
+export const controlOptions = {
+  transparentCorners: false,
+  borderColor: "#0E98FC",
+  cornerColor: "#FFF",
+  borderScaleFactor: 2,
+  cornerStyle: "circle",
+  cornerStrokeColor: "#0E98FC",
+  borderOpacityWhenMoving: 1,
+  snapAngle: 45,
+  snapThreshold: 5,
+}
+
 // Image cache to store loaded images
 const imageCache = new Map<string, HTMLImageElement>()
 
@@ -251,17 +263,8 @@ function intervalControl() {
 export function initControls() {
   setControlConfig()
 
-  const options = {
-    transparentCorners: false,
-    borderColor: "#0E98FC",
-    cornerColor: "#FFF",
-    borderScaleFactor: 2.5,
-    cornerStyle: "circle",
-    cornerStrokeColor: "#0E98FC",
-    borderOpacityWhenMoving: 1,
-    snapAngle: 45,
-    snapThreshold: 5,
-  }
-  fabric.FabricObject.prototype.set(options)
-  fabric.Textbox.prototype.set(options)
+  fabric.Rect.prototype.set(controlOptions)
+  fabric.Circle.prototype.set(controlOptions)
+  fabric.FabricObject.prototype.set(controlOptions)
+  fabric.Textbox.prototype.set(controlOptions)
 }

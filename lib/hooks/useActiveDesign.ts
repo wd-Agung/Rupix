@@ -1,19 +1,21 @@
 import { useDesignStore } from '@/lib/stores/design-store'
 import { useEffect, useReducer } from 'react'
 
-export function useActiveDesign() {
-  const activeDesign = useDesignStore((state) => state.getActiveDesign())
-  const [, forceUpdate] = useReducer((x) => x + 1, 0)
+export const useActiveDesign = () => {
+  const activeDesignId = useDesignStore((state) => state.activeDesignId)
+  const getDesign = useDesignStore((state) => state.getDesign)
+  const activeDesign = activeDesignId ? getDesign(activeDesignId) : null
+
+  const [, forceUpdate] = useReducer((v) => v + 1, 0)
 
   useEffect(() => {
-    if (!activeDesign) return
-
-    const unsubscribe = activeDesign.subscribe(() => {
-      forceUpdate()
-    })
-
-    return () => {
-      unsubscribe()
+    if (activeDesign) {
+      const unsubscribe = activeDesign.subscribe(() => {
+        forceUpdate()
+      })
+      return () => {
+        unsubscribe()
+      }
     }
   }, [activeDesign])
 

@@ -34,7 +34,7 @@ export interface CanvasState {
 }
 
 export interface InitCanvasOptions {
-  backgroundColor: string
+  backgroundColor?: string
   canvasEl: HTMLCanvasElement
   canvasWidth: number
   canvasHeight: number
@@ -65,6 +65,8 @@ export interface CanvasActions {
 
   // Object operations
   duplicateActiveObject: () => Promise<void>
+  undo: () => Promise<void>
+  redo: () => Promise<void>
 
   // Properties
   setFillColor: (color: string) => void
@@ -268,6 +270,18 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
     const design = get().getActiveDesign()
     if (design) {
       await design.duplicateActiveObject()
+    }
+  },
+  undo: async () => {
+    const design = get().getActiveDesign()
+    if (design) {
+      await design.undo()
+    }
+  },
+  redo: async () => {
+    const design = get().getActiveDesign()
+    if (design) {
+      await design.redo()
     }
   },
 

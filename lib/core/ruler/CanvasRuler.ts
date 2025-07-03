@@ -26,15 +26,14 @@ export class CanvasRuler {
   constructor(canvas: Canvas, options: CanvasRulerOptions = {}) {
     this.canvas = canvas;
     this.options = { ...this.DEFAULT_OPTIONS, ...options };
-    (this.canvas as any).ruler = this;
   }
 
   public enable() {
-    this.canvas.on('after:render', this.render);
+    this.canvas?.on('after:render', this.render);
   }
 
   public disable() {
-    this.canvas.off('after:render', this.render);
+    this.canvas?.off('after:render', this.render);
   }
 
   public isPointOnRuler(p: MouseEvent): 'horizontal' | 'vertical' | null {

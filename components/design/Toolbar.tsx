@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useActiveDesign } from '@/lib/hooks/useActiveDesign'
 import { useDesignStore, type ToolType } from '@/lib/stores/design-store'
 import { cn } from '@/lib/utils'
 import {
@@ -15,7 +16,6 @@ import {
   MousePointer,
   Redo,
   Square,
-  Trash2,
   Type,
   Undo
 } from 'lucide-react'
@@ -36,14 +36,14 @@ export function Toolbar({ className }: ToolbarProps) {
   const {
     selectedTool,
     setSelectedTool,
-    getActiveDesign,
     cameraLocked,
     setCameraLocked,
     duplicateActiveObject,
+    undo,
+    redo
   } = useDesignStore()
 
-  const activeDesign = getActiveDesign()
-  const activeTab = activeDesign // alias for compatibility
+  const activeDesign = useActiveDesign()
 
   const handleToolSelect = (tool: ToolType) => {
     setSelectedTool(tool)
@@ -58,6 +58,16 @@ export function Toolbar({ className }: ToolbarProps) {
     if (confirm('Are you sure you want to clear the canvas? This action cannot be undone.')) {
       activeDesign.clear()
     }
+  }
+
+  const handleUndo = async () => {
+    if (!activeDesign) return
+    await undo()
+  }
+
+  const handleRedo = async () => {
+    if (!activeDesign) return
+    await redo()
   }
 
   const handleExport = (format: 'png' | 'jpg' | 'svg' | 'json') => {
@@ -82,8 +92,6 @@ export function Toolbar({ className }: ToolbarProps) {
     }
   }
 
-
-
   const handleCameraLockToggle = () => {
     const newLockState = !cameraLocked
     setCameraLocked(newLockState)
@@ -98,7 +106,9 @@ export function Toolbar({ className }: ToolbarProps) {
     await duplicateActiveObject()
   }
 
-  const isDisabled = !activeTab
+  const isDisabled = !activeDesign
+  const canUndo = activeDesign?.canUndo() ?? false
+  const canRedo = activeDesign?.canRedo() ?? false
   const hasActiveObject = activeDesign?.canvas?.getActiveObject() && !(activeDesign.canvas.getActiveObject() as any)?.isBaseLayer
 
   return (
@@ -134,7 +144,7 @@ export function Toolbar({ className }: ToolbarProps) {
         <div className="flex items-center gap-1">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" disabled>
+              <Button variant="ghost" size="sm" onClick={handleUndo} disabled={!canUndo}>
                 <Undo className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
@@ -145,7 +155,7 @@ export function Toolbar({ className }: ToolbarProps) {
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" disabled>
+              <Button variant="ghost" size="sm" onClick={handleRedo} disabled={!canRedo}>
                 <Redo className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
@@ -167,28 +177,6 @@ export function Toolbar({ className }: ToolbarProps) {
             </TooltipTrigger>
             <TooltipContent>
               <p>Duplicate (Ctrl+D)</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-
-        <Separator orientation="vertical" className="h-6" />
-
-        {/* File Operations */}
-        <div className="flex items-center gap-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClearCanvas}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                disabled={isDisabled}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Clear Canvas</p>
             </TooltipContent>
           </Tooltip>
         </div>

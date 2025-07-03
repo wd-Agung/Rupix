@@ -1,15 +1,23 @@
 import type { TEvent } from 'fabric';
 import * as fabric from 'fabric';
 import { v4 as uuidv4 } from 'uuid';
-import { initControls } from './Control';
+import { controlOptions, initControls } from './Control';
 import { CanvasRuler } from './ruler';
 import initAligningGuidelines from './ruler/SnapLine';
+import { BaseLayer } from './subclass/BaseLayer';
 
 declare module "fabric" {
   interface CanvasEvents {
     'tool_change': Partial<TEvent> & {
       tool: ToolType;
     };
+  }
+}
+
+declare module 'fabric' {
+  interface Object {
+    layerId?: string;
+    isDrawingPreview?: boolean;
   }
 }
 
@@ -96,6 +104,11 @@ export class DesignManager {
   // Camera lock state
   public cameraLocked = true // Default to locked
 
+  // History state
+  private historyStack: { canvas: string; layers: Omit<CanvasLayer, 'object'>[] }[] = []
+  private historyPointer = -1
+  private isRestoringState = false // To prevent saving state during undo/redo
+
   private listeners: Set<DesignManagerListener> = new Set()
 
   constructor(name: string, baseLayerConfig?: Partial<BaseLayerConfig>) {
@@ -158,6 +171,17 @@ export class DesignManager {
     this.canvas.on('selection:created', this.updateCursor)
     this.canvas.on('selection:cleared', this.updateCursor)
     this.canvas.on('selection:updated', this.updateCursor)
+
+    // History-related events
+    this.canvas.on('object:added', (e) => {
+      if (e.target?.isDrawingPreview) return
+      this.saveState()
+    })
+    this.canvas.on('object:removed', (e) => {
+      if (e.target?.isDrawingPreview) return
+      this.saveState()
+    })
+    this.canvas.on('object:modified', () => this.saveState())
 
     // Add drag and drop support
     this.setupDragAndDrop()
@@ -437,6 +461,11 @@ export class DesignManager {
     const obj = opt.target
     if (!obj || !this.canvas) return
     obj.setCoords()
+
+    const layerData = this.layers.find(l => l.object === obj)
+    if (layerData?.locked) {
+      // Prevent movement for locked layers
+    }
   }
 
   // --- Drawing Methods ---
@@ -487,7 +516,8 @@ export class DesignManager {
         strokeDashArray: [4, 4],
         selectable: false,
         evented: false,
-        opacity: 0.8
+        opacity: 0.8,
+        isDrawingPreview: true,
       })
     } else if (this.selectedTool === 'circle') {
       const radius = Math.min(finalWidth, finalHeight) / 2
@@ -501,7 +531,8 @@ export class DesignManager {
         strokeDashArray: [4, 4],
         selectable: false,
         evented: false,
-        opacity: 0.8
+        opacity: 0.8,
+        isDrawingPreview: true,
       })
     } else if (this.selectedTool === 'image') {
       // Create a group with rectangle and text for image preview
@@ -538,6 +569,7 @@ export class DesignManager {
         selectable: false,
         evented: false,
       })
+      previewObject.isDrawingPreview = true
     } else {
       return
     }
@@ -618,8 +650,10 @@ export class DesignManager {
   private initializeBaseLayer() {
     if (!this.canvas) return
 
+    fabric.util.createCanvasElement
+
     // Create base layer rectangle
-    this.baseLayer = new fabric.Rect({
+    this.baseLayer = new BaseLayer({
       left: this.baseLayerConfig.x,
       top: this.baseLayerConfig.y,
       width: this.baseLayerConfig.width,
@@ -631,8 +665,8 @@ export class DesignManager {
       selectable: false,
       evented: false,
       excludeFromExport: false,
-      isBaseLayer: true
-    } as any) // Using any to add custom property
+      type: 'BaseLayer',
+    })
 
     // Add base layer to canvas
     this.canvas.add(this.baseLayer)
@@ -660,6 +694,7 @@ export class DesignManager {
 
     // Apply clipping to canvas
     this.canvas.clipPath = clipPath
+    console.log('setupClipping', this.canvas.clipPath, this.canvas)
     this.canvas.renderAll()
   }
 
@@ -780,6 +815,12 @@ export class DesignManager {
       id: layerData.id || uuidv4(),
       ...layerData
     }
+
+    // Assign layerId to the fabric object for history tracking
+    if (newLayer.object) {
+      newLayer.object.layerId = newLayer.id
+    }
+
     this.layers = [...this.layers, newLayer]
     this.selectedLayerId = newLayer.id
     this.lastModified = new Date()
@@ -1462,5 +1503,132 @@ export class DesignManager {
       this.canvas.renderAll()
       this.notify() // Notify to update properties panel
     }
+  }
+
+  // --- History Management ---
+  public saveState = () => {
+    if (this.isRestoringState || !this.canvas) return
+
+    // Create a serializable version of layers (without fabric objects)
+    const serializableLayers = this.layers.map(({ object, ...rest }) => rest)
+
+    const state = {
+      canvas: JSON.stringify(this.canvas.toJSON()),
+      layers: serializableLayers
+    }
+
+    // If we are in the middle of history, truncate the future
+    if (this.historyPointer < this.historyStack.length - 1) {
+      this.historyStack = this.historyStack.slice(0, this.historyPointer + 1)
+    }
+
+    this.historyStack.push(state)
+    this.historyPointer = this.historyStack.length - 1
+
+    this.notify() // Notify store to update canUndo/canRedo
+  }
+
+  public undo = async () => {
+    if (!this.canUndo()) return
+
+    this.isRestoringState = true
+    this.historyPointer--
+    const prevState = this.historyStack[this.historyPointer]
+
+    if (this.canvas && prevState) {
+      // Clear canvas before loading
+      this.canvas.clear()
+      await this.canvas.loadFromJSON(JSON.parse(prevState.canvas))
+      this.rebindState(prevState.layers)
+    }
+
+    const objects = this.canvas?.getObjects()
+    if (objects) {
+      objects.forEach(obj => {
+        obj.set(controlOptions)
+      })
+      this.layers = objects.filter(obj => !(obj instanceof BaseLayer)).map(obj => {
+        return {
+          id: obj.layerId ?? uuidv4(),
+          name: (obj as any).name ?? (obj as any).text ?? (obj as any).type ?? '',
+          object: obj,
+          visible: obj.visible,
+          locked: !obj.selectable,
+        }
+      })
+    }
+
+    this.isRestoringState = false
+    this.canvas?.renderAll()
+    this.notify()
+  }
+
+  public redo = async () => {
+    if (!this.canRedo()) return
+
+    this.isRestoringState = true
+    this.historyPointer++
+    const nextState = this.historyStack[this.historyPointer]
+
+    if (this.canvas && nextState) {
+      this.canvas.clear()
+      await this.canvas.loadFromJSON(JSON.parse(nextState.canvas))
+      this.rebindState(nextState.layers)
+    }
+
+    const objects = this.canvas?.getObjects()
+    if (objects) {
+      objects.forEach(obj => {
+        obj.set(controlOptions)
+      })
+      this.layers = objects.filter(obj => !(obj instanceof BaseLayer)).map(obj => {
+        return {
+          id: obj.layerId ?? uuidv4(),
+          name: (obj as any).name ?? (obj as any).text ?? (obj as any).type ?? '',
+          object: obj,
+          visible: obj.visible,
+          locked: !obj.selectable,
+        }
+      })
+    }
+
+    this.isRestoringState = false
+    this.canvas?.renderAll()
+    this.notify()
+  }
+
+  private rebindState(layerData: Omit<CanvasLayer, 'object'>[]) {
+    if (!this.canvas) return
+
+    // Re-establish base layer reference
+    this.baseLayer = this.canvas.getObjects().find(obj => obj instanceof BaseLayer) as BaseLayer | null
+    if (this.clippingEnabled) {
+      this.setupClipping()
+    }
+
+    this.baseLayer?.set('selectable', false)
+    this.baseLayer?.set('evented', false)
+
+    // Rebuild layers array by linking fabric objects to layer data
+    this.layers = layerData.map(data => {
+      const fabricObject = this.canvas?.getObjects().find(obj => obj.layerId === data.id)
+      return {
+        ...data,
+        object: fabricObject as fabric.Object
+      }
+    }).filter(layer => layer.object) // Filter out any layers where the object wasn't found
+
+    // Re-initialize snap lines
+    initAligningGuidelines(this.canvas)
+
+    // Re-attach listeners to objects if needed (usually handled by fabric)
+  }
+
+  public canUndo = (): boolean => {
+    return this.historyPointer > 0
+  }
+
+  public canRedo = (): boolean => {
+    return this.historyPointer < this.historyStack.length - 1
   }
 } 
