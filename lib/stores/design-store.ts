@@ -43,7 +43,7 @@ export interface InitCanvasOptions {
 
 export interface CanvasActions {
   // Design management
-  createNewDesign: (name?: string) => string
+  createNewDesign: (name?: string, dimensions?: { width: number; height: number }) => string
   closeDesign: (designId: string) => void
   setActiveDesign: (designId: string) => void
   renameDesign: (designId: string, newName: string) => void
@@ -129,10 +129,21 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
   cameraLocked: true, // Default to locked
 
   // Design management actions
-  createNewDesign: (name) => {
+  createNewDesign: (name?: string, dimensions?: { width: number; height: number }) => {
     const designName = name || `Canvas ${get().designs.length + 1}`
 
-    const newDesign = new DesignManager(designName)
+    const canvasDimensions = dimensions || { width: 800, height: 600 }
+
+    const newDesign = new DesignManager(designName, {
+      width: canvasDimensions.width,
+      height: canvasDimensions.height,
+      x: 0,
+      y: 0,
+      fill: '#ffffff',
+      stroke: '#000000',
+      strokeWidth: 1,
+      opacity: 1
+    })
     console.log('newDesign', newDesign)
 
     // Set the camera lock state for the new design

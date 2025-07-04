@@ -262,11 +262,7 @@ export class DesignManager {
               const result = event.target?.result as string
               if (result) {
                 // Get drop position relative to canvas
-                const rect = canvasElement.getBoundingClientRect()
-                const x = e.clientX - rect.left
-                const y = e.clientY - rect.top
                 const canvasPoint = this.canvas?.getScenePoint(e as any)
-
                 this.addImageFromDataURL(result, file.name, canvasPoint)
               }
             }
@@ -649,8 +645,6 @@ export class DesignManager {
   // --- Base Layer Management ---
   private initializeBaseLayer() {
     if (!this.canvas) return
-
-    fabric.util.createCanvasElement
 
     // Create base layer rectangle
     this.baseLayer = new BaseLayer({

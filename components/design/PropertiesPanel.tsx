@@ -950,8 +950,6 @@ export function PropertiesPanel({ className, onCollapse }: PropertiesPanelProps)
                                 }}
                                 onMouseDown={(e) => {
                                   const circleElement = e.currentTarget
-                                  const initialRect = circleElement.getBoundingClientRect()
-
                                   const handleMouseMove = (e: MouseEvent) => {
                                     // Use the captured rect since currentTarget will be document
                                     const rect = circleElement.getBoundingClientRect()

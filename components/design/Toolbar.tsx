@@ -53,13 +53,6 @@ export function Toolbar({ className }: ToolbarProps) {
     }
   }
 
-  const handleClearCanvas = () => {
-    if (!activeDesign) return
-    if (confirm('Are you sure you want to clear the canvas? This action cannot be undone.')) {
-      activeDesign.clear()
-    }
-  }
-
   const handleUndo = async () => {
     if (!activeDesign) return
     await undo()

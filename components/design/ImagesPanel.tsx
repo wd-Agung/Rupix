@@ -294,7 +294,7 @@ export function ImagesPanel({ onCollapse, className }: ImagesPanelProps) {
           </div>
           <h3 className="text-xl font-semibold text-gray-900 mb-2">Coming Soon</h3>
           <p className="text-gray-600 max-w-sm mx-auto">
-            We're working hard to bring you an amazing images experience. Stay tuned!
+            We&apos;re working hard to bring you an amazing images experience. Stay tuned!
           </p>
         </div>
       </div>

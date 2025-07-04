@@ -44,7 +44,7 @@ function MarkdownText({ children, isUser }: MarkdownTextProps) {
         li: ({ children }) => <li className="mb-1">{children}</li>,
 
         // Style code blocks
-        code: ({ children, className, ...props }) => {
+        code: ({ children, className }) => {
           const inline = !className?.includes('language-')
           if (inline) {
             return (
@@ -206,7 +206,6 @@ export function AgentPanel({ className, onCollapse }: AgentPanelProps) {
     handleInputChange,
     handleSubmit,
     isLoading,
-    setInput,
   } = useChat({
     maxSteps: 10,
     onToolCall: ({ toolCall }) => {

@@ -27,6 +27,3 @@ export class BaseLayer<
 }
 
 fabric.classRegistry.setClass(BaseLayer);
-
-// @ts-ignore
-fabric.BaseLayer = BaseLayer;
