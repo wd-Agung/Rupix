@@ -1,8 +1,18 @@
-import { CanvasLayer, DesignManager, ToolType } from '@/lib/core/DesignManager'
-import type * as fabric from 'fabric'
-import { create } from 'zustand'
+import { CanvasLayer, DesignManager, ToolType } from '@/lib/core/DesignManager';
+import type * as fabric from 'fabric';
+import { create } from 'zustand';
 
-export type { CanvasLayer, ToolType }
+declare module 'fabric' {
+  interface Object {
+    layerId?: string;
+    isDrawingPreview?: boolean;
+    isBaseLayer?: boolean;
+    name?: string;
+    text?: string;
+  }
+}
+
+export type { CanvasLayer, ToolType };
 
 export interface CanvasState {
   designs: DesignManager[]
@@ -95,7 +105,7 @@ export interface CanvasActions {
   reorderLayer: (layerId: string, newIndex: number) => void
 
   // AI Tool Functions
-  executeCanvasTool: (toolName: string, params: any) => { success: boolean; data: string } | void
+  executeCanvasTool: (toolName: string, params: Record<string, any>) => { success: boolean; data: string } | void
 }
 
 export type DesignStore = CanvasState & CanvasActions
@@ -328,7 +338,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
   },
 
   // AI Tool Functions
-  executeCanvasTool: (toolName: string, params: any) => {
+  executeCanvasTool: (toolName: string, params: Record<string, any>) => {
     const design = get().getActiveDesign()
     if (!design || !design.canvas) {
       return { success: false, data: 'No active canvas found' }
@@ -467,7 +477,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
             return { success: false, data: `No object found with name containing "${params.layerName}"` }
           }
         } else if (typeof params.index === 'number') {
-          const objects = design.canvas.getObjects().filter(obj => !(obj as any).isBaseLayer)
+          const objects = design.canvas.getObjects().filter(obj => !obj.isBaseLayer)
           if (objects[params.index]) {
             design.canvas.setActiveObject(objects[params.index])
             design.canvas.requestRenderAll()
@@ -491,7 +501,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         return { success: true, data: 'Deleted selected object' }
       } else if (toolName === 'duplicateSelectedObject') {
         const activeObject = design.canvas.getActiveObject()
-        if (!activeObject || (activeObject as any).isBaseLayer) {
+        if (!activeObject || activeObject.isBaseLayer) {
           return { success: false, data: 'No object selected or cannot duplicate base layer' }
         }
         design.duplicateActiveObject().then(() => {

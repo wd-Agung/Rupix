@@ -78,8 +78,9 @@ const filterPresets = [
       { type: 'Blur', blur: 0.1 },
       { type: 'Brightness', brightness: 0.1 }
     ]
-  }
-]
+  },
+  { name: 'Invert', filters: [{ type: 'Invert' }] }
+] as const
 
 const fontFamilies = [
   // Modern Sans-Serif (Most Popular for Design)
@@ -201,7 +202,7 @@ export function PropertiesPanel({ className, onCollapse }: PropertiesPanelProps)
   })
 
   // Apply filters to image
-  const applyFiltersToImage = (imageObj: fabric.Image, filters: any[]) => {
+  const applyFiltersToImage = (imageObj: fabric.Image, filters: readonly any[]) => {
     const fabricFilters: any[] = []
 
     filters.forEach(filterConfig => {
@@ -260,7 +261,7 @@ export function PropertiesPanel({ className, onCollapse }: PropertiesPanelProps)
   }
 
   // Apply preset filter
-  const applyPresetFilter = (preset: typeof filterPresets[0]) => {
+  const applyPresetFilter = (preset: (typeof filterPresets)[number]) => {
     if (activeObject && activeObject.type === 'image') {
       const imageObj = activeObject as fabric.Image
       applyFiltersToImage(imageObj, preset.filters)
@@ -489,7 +490,6 @@ export function PropertiesPanel({ className, onCollapse }: PropertiesPanelProps)
   let effectiveLineHeight = globalLineHeight
   let effectiveCharSpacing = globalCharSpacing
   let effectiveShadow = globalShadow
-  let effectiveBackgroundColor = globalBackgroundColor
 
   if (activeObject && activeObject.type === 'i-text') {
     const textObject = activeObject as fabric.IText
@@ -500,7 +500,6 @@ export function PropertiesPanel({ className, onCollapse }: PropertiesPanelProps)
     effectiveLineHeight = textObject.lineHeight || globalLineHeight
     effectiveCharSpacing = textObject.charSpacing || globalCharSpacing
     effectiveShadow = textObject.shadow || globalShadow
-    effectiveBackgroundColor = textObject.backgroundColor as string || globalBackgroundColor
   }
 
   const handlePropertyChange = (properties: any) => {

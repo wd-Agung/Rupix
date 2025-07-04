@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useActiveDesign } from '@/lib/hooks/useActiveDesign'
 import { useDesignStore, type ToolType } from '@/lib/stores/design-store'
 import { cn } from '@/lib/utils'
+import fabric from 'fabric'
 import {
   Circle,
   Copy,
@@ -22,6 +23,10 @@ import {
 
 interface ToolbarProps {
   className?: string
+}
+
+interface CustomFabricObject extends fabric.Object {
+  isBaseLayer?: boolean;
 }
 
 const tools = [
@@ -102,7 +107,8 @@ export function Toolbar({ className }: ToolbarProps) {
   const isDisabled = !activeDesign
   const canUndo = activeDesign?.canUndo() ?? false
   const canRedo = activeDesign?.canRedo() ?? false
-  const hasActiveObject = activeDesign?.canvas?.getActiveObject() && !(activeDesign.canvas.getActiveObject() as any)?.isBaseLayer
+  const activeObject = activeDesign?.canvas?.getActiveObject() as CustomFabricObject
+  const hasActiveObject = !!activeObject && !activeObject.isBaseLayer
 
   return (
     <TooltipProvider>

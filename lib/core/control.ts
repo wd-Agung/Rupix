@@ -79,7 +79,7 @@ function setControlConfig() {
     ctx: CanvasRenderingContext2D,
     left: number,
     top: number,
-    styleOverride: any,
+    styleOverride: object,
     fabricObject: fabric.FabricObject
   ) {
     if (img) {
@@ -146,7 +146,7 @@ function rotationControl() {
     ctx: CanvasRenderingContext2D,
     left: number,
     top: number,
-    styleOverride: any,
+    styleOverride: object,
     fabricObject: fabric.FabricObject
   ) {
     if (img) {
@@ -190,7 +190,7 @@ function intervalControl() {
     ctx: CanvasRenderingContext2D,
     left: number,
     top: number,
-    styleOverride: any,
+    styleOverride: object,
     fabricObject: fabric.FabricObject
   ) {
     if (verticalImgIcon) {
@@ -202,7 +202,7 @@ function intervalControl() {
     ctx: CanvasRenderingContext2D,
     left: number,
     top: number,
-    styleOverride: any,
+    styleOverride: object,
     fabricObject: fabric.FabricObject
   ) {
     if (horizontalImgIcon) {

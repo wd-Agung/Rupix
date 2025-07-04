@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
 interface RulerProps {
   scrollLeft: number
@@ -21,7 +21,7 @@ export function Ruler({ scrollLeft, scrollTop, zoom, width, height, className }:
   const horizontalRulerRef = useRef<HTMLCanvasElement>(null)
   const verticalRulerRef = useRef<HTMLCanvasElement>(null)
 
-  const drawRulers = () => {
+  const drawRulers = useCallback(() => {
     const horizontalCtx = horizontalRulerRef.current?.getContext('2d')
     const verticalCtx = verticalRulerRef.current?.getContext('2d')
 
@@ -84,11 +84,11 @@ export function Ruler({ scrollLeft, scrollTop, zoom, width, height, className }:
       }
     }
     verticalCtx.stroke()
-  }
+  }, [height, scrollLeft, scrollTop, width, zoom])
 
   useEffect(() => {
     drawRulers()
-  }, [scrollLeft, scrollTop, zoom, width, height])
+  }, [drawRulers])
 
   return (
     <div className={cn('absolute inset-0 pointer-events-none', className)}>

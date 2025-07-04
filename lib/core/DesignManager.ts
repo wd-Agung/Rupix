@@ -18,6 +18,9 @@ declare module 'fabric' {
   interface Object {
     layerId?: string;
     isDrawingPreview?: boolean;
+    isBaseLayer?: boolean;
+    name?: string;
+    text?: string;
   }
 }
 
@@ -108,6 +111,7 @@ export class DesignManager {
   private historyStack: { canvas: string; layers: Omit<CanvasLayer, 'object'>[] }[] = []
   private historyPointer = -1
   private isRestoringState = false // To prevent saving state during undo/redo
+  private _keydownHandler: ((e: KeyboardEvent) => void) | null = null
 
   private listeners: Set<DesignManagerListener> = new Set()
 
@@ -214,8 +218,8 @@ export class DesignManager {
     document.addEventListener('keydown', handleKeyDown)
     canvasElement.addEventListener('keydown', handleKeyDown)
 
-      // Store references for cleanup
-      ; (this as any)._keydownHandler = handleKeyDown
+    // Store references for cleanup
+    this._keydownHandler = handleKeyDown
   }
 
   private setupDragAndDrop() {
@@ -262,7 +266,7 @@ export class DesignManager {
               const result = event.target?.result as string
               if (result) {
                 // Get drop position relative to canvas
-                const canvasPoint = this.canvas?.getScenePoint(e as any)
+                const canvasPoint = this.canvas?.getScenePoint(e as MouseEvent)
                 this.addImageFromDataURL(result, file.name, canvasPoint)
               }
             }
@@ -709,7 +713,7 @@ export class DesignManager {
 
       if (config.width !== undefined || config.height !== undefined) {
         const newBounds = this.getBaseLayerBounds()
-        const objects = this.canvas.getObjects().filter(obj => !(obj as any).isBaseLayer)
+        const objects = this.canvas.getObjects().filter(obj => !obj.isBaseLayer)
 
         objects.forEach(obj => {
           const objBounds = obj.getBoundingRect()
@@ -1164,7 +1168,7 @@ export class DesignManager {
     if (!this.canvas) return null
 
     const activeObject = this.canvas.getActiveObject()
-    if (!activeObject || (activeObject as any).isBaseLayer) return null
+    if (!activeObject || activeObject.isBaseLayer) return null
 
     try {
       // Clone the active object using the fabric clone method
@@ -1211,7 +1215,7 @@ export class DesignManager {
     if (!this.canvas) return
 
     // Clear all objects except base layer
-    const objectsToRemove = this.canvas.getObjects().filter(obj => !(obj as any).isBaseLayer)
+    const objectsToRemove = this.canvas.getObjects().filter(obj => !obj.isBaseLayer)
     objectsToRemove.forEach(obj => this.canvas?.remove(obj))
 
     this.layers = []
@@ -1288,14 +1292,14 @@ export class DesignManager {
   // --- Cleanup ---
   public dispose() {
     // Remove keyboard event listeners
-    const keydownHandler = (this as any)._keydownHandler
+    const keydownHandler = this._keydownHandler
     if (keydownHandler) {
       document.removeEventListener('keydown', keydownHandler)
       const canvasElement = this.canvas?.getElement()
       if (canvasElement) {
         canvasElement.removeEventListener('keydown', keydownHandler)
       }
-      delete (this as any)._keydownHandler
+      this._keydownHandler = null
     }
 
     if (this.canvas) {
@@ -1450,7 +1454,7 @@ export class DesignManager {
     if (!this.canvas) return
 
     // Get all objects except base layer
-    const objects = this.canvas.getObjects().filter(obj => !(obj as any).isBaseLayer)
+    const objects = this.canvas.getObjects().filter(obj => !obj.isBaseLayer)
 
     // Clear all objects except base layer
     objects.forEach(obj => this.canvas?.remove(obj))
@@ -1489,7 +1493,7 @@ export class DesignManager {
     }
   }
 
-  public updateSelectedLayerObject = (properties: any) => {
+  public updateSelectedLayerObject = (properties: Partial<fabric.Object>) => {
     if (!this.canvas || !this.selectedLayerId) return
     const layer = this.layers.find(l => l.id === this.selectedLayerId)
     if (layer) {
@@ -1504,6 +1508,7 @@ export class DesignManager {
     if (this.isRestoringState || !this.canvas) return
 
     // Create a serializable version of layers (without fabric objects)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const serializableLayers = this.layers.map(({ object, ...rest }) => rest)
 
     const state = {
@@ -1547,7 +1552,7 @@ export class DesignManager {
       this.layers = objects.filter(obj => !(obj instanceof BaseLayer)).map(obj => {
         return {
           id: obj.layerId ?? uuidv4(),
-          name: (obj as any).name ?? (obj as any).text ?? (obj as any).type ?? '',
+          name: obj.name ?? obj.text ?? obj.type ?? '',
           object: obj,
           visible: obj.visible,
           locked: !obj.selectable,
@@ -1584,7 +1589,7 @@ export class DesignManager {
       this.layers = objects.filter(obj => !(obj instanceof BaseLayer)).map(obj => {
         return {
           id: obj.layerId ?? uuidv4(),
-          name: (obj as any).name ?? (obj as any).text ?? (obj as any).type ?? '',
+          name: obj.name ?? obj.text ?? obj.type ?? '',
           object: obj,
           visible: obj.visible,
           locked: !obj.selectable,

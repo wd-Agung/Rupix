@@ -209,7 +209,9 @@ export function AgentPanel({ className, onCollapse }: AgentPanelProps) {
   } = useChat({
     maxSteps: 10,
     onToolCall: ({ toolCall }) => {
-      return executeCanvasTool(toolCall.toolName, toolCall.args)
+      if (typeof toolCall.args === 'object' && toolCall.args !== null) {
+        return executeCanvasTool(toolCall.toolName, toolCall.args as Record<string, any>)
+      }
     },
   })
 

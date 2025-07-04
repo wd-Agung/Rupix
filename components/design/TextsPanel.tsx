@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useDesignStore } from '@/lib/stores/design-store'
 import { cn } from '@/lib/utils'
+import fabric from 'fabric'
 import { Search, Type } from 'lucide-react'
 import { useState } from 'react'
 
@@ -12,481 +13,499 @@ interface TextsPanelProps {
   className?: string
 }
 
+interface CustomTextStyle {
+  fontSize: string;
+  fontWeight: string;
+  fontFamily: string;
+  color: string;
+  fontStyle?: 'normal' | 'italic' | 'oblique';
+  textTransform?: 'uppercase' | 'lowercase' | 'capitalize' | 'none';
+  textAlign?: 'left' | 'center' | 'right' | 'justify';
+  lineHeight?: number;
+  charSpacing?: number;
+}
+
 // Mock text styles data
-const textStyles = [
-  // Modern Headers
-  {
-    id: '1',
-    name: 'Inter Heading',
-    category: 'Headers',
-    style: {
-      fontSize: '2.5rem',
-      fontWeight: 'bold',
-      fontFamily: 'Inter',
-      color: '#1f2937'
+const textStyles: Array<{
+  id: string;
+  name: string;
+  category: string;
+  style: CustomTextStyle;
+  preview: string;
+}> = [
+    // Modern Headers
+    {
+      id: '1',
+      name: 'Inter Heading',
+      category: 'Headers',
+      style: {
+        fontSize: '2.5rem',
+        fontWeight: 'bold',
+        fontFamily: 'Inter',
+        color: '#1f2937'
+      },
+      preview: 'Modern Heading'
     },
-    preview: 'Modern Heading'
-  },
-  {
-    id: '2',
-    name: 'Poppins Header',
-    category: 'Headers',
-    style: {
-      fontSize: '2rem',
-      fontWeight: '600',
-      fontFamily: 'Poppins',
-      color: '#374151'
+    {
+      id: '2',
+      name: 'Poppins Header',
+      category: 'Headers',
+      style: {
+        fontSize: '2rem',
+        fontWeight: '600',
+        fontFamily: 'Poppins',
+        color: '#374151'
+      },
+      preview: 'Clean Header'
     },
-    preview: 'Clean Header'
-  },
-  {
-    id: '3',
-    name: 'Montserrat Title',
-    category: 'Headers',
-    style: {
-      fontSize: '1.75rem',
-      fontWeight: '700',
-      fontFamily: 'Montserrat',
-      color: '#111827'
+    {
+      id: '3',
+      name: 'Montserrat Title',
+      category: 'Headers',
+      style: {
+        fontSize: '1.75rem',
+        fontWeight: '700',
+        fontFamily: 'Montserrat',
+        color: '#111827'
+      },
+      preview: 'Bold Title'
     },
-    preview: 'Bold Title'
-  },
 
-  // Elegant Serif Headers
-  {
-    id: '4',
-    name: 'Playfair Display',
-    category: 'Headers',
-    style: {
-      fontSize: '2.25rem',
-      fontWeight: 'bold',
-      fontFamily: 'Playfair Display',
-      color: '#1f2937'
+    // Elegant Serif Headers
+    {
+      id: '4',
+      name: 'Playfair Display',
+      category: 'Headers',
+      style: {
+        fontSize: '2.25rem',
+        fontWeight: 'bold',
+        fontFamily: 'Playfair Display',
+        color: '#1f2937'
+      },
+      preview: 'Elegant Display'
     },
-    preview: 'Elegant Display'
-  },
-  {
-    id: '5',
-    name: 'Merriweather Heading',
-    category: 'Headers',
-    style: {
-      fontSize: '1.875rem',
-      fontWeight: '700',
-      fontFamily: 'Merriweather',
-      color: '#374151'
+    {
+      id: '5',
+      name: 'Merriweather Heading',
+      category: 'Headers',
+      style: {
+        fontSize: '1.875rem',
+        fontWeight: '700',
+        fontFamily: 'Merriweather',
+        color: '#374151'
+      },
+      preview: 'Classic Heading'
     },
-    preview: 'Classic Heading'
-  },
 
-  // Body Text Styles
-  {
-    id: '6',
-    name: 'Inter Body',
-    category: 'Body',
-    style: {
-      fontSize: '1rem',
-      fontWeight: 'normal',
-      fontFamily: 'Inter',
-      color: '#4b5563'
+    // Body Text Styles
+    {
+      id: '6',
+      name: 'Inter Body',
+      category: 'Body',
+      style: {
+        fontSize: '1rem',
+        fontWeight: 'normal',
+        fontFamily: 'Inter',
+        color: '#4b5563'
+      },
+      preview: 'Modern body text for readability'
     },
-    preview: 'Modern body text for readability'
-  },
-  {
-    id: '7',
-    name: 'Open Sans Body',
-    category: 'Body',
-    style: {
-      fontSize: '1rem',
-      fontWeight: 'normal',
-      fontFamily: 'Open Sans',
-      color: '#4b5563'
+    {
+      id: '7',
+      name: 'Open Sans Body',
+      category: 'Body',
+      style: {
+        fontSize: '1rem',
+        fontWeight: 'normal',
+        fontFamily: 'Open Sans',
+        color: '#4b5563'
+      },
+      preview: 'Clean and readable body text'
     },
-    preview: 'Clean and readable body text'
-  },
-  {
-    id: '8',
-    name: 'Lora Article',
-    category: 'Body',
-    style: {
-      fontSize: '1.125rem',
-      fontWeight: 'normal',
-      fontFamily: 'Lora',
-      color: '#374151'
+    {
+      id: '8',
+      name: 'Lora Article',
+      category: 'Body',
+      style: {
+        fontSize: '1.125rem',
+        fontWeight: 'normal',
+        fontFamily: 'Lora',
+        color: '#374151'
+      },
+      preview: 'Beautiful serif for long-form content'
     },
-    preview: 'Beautiful serif for long-form content'
-  },
 
-  // Display & Impact
-  {
-    id: '9',
-    name: 'Oswald Display',
-    category: 'Display',
-    style: {
-      fontSize: '3rem',
-      fontWeight: '600',
-      fontFamily: 'Oswald',
-      color: '#111827',
-      textTransform: 'uppercase'
+    // Display & Impact
+    {
+      id: '9',
+      name: 'Oswald Display',
+      category: 'Display',
+      style: {
+        fontSize: '3rem',
+        fontWeight: '600',
+        fontFamily: 'Oswald',
+        color: '#111827',
+        textTransform: 'uppercase'
+      },
+      preview: 'IMPACT'
     },
-    preview: 'IMPACT'
-  },
-  {
-    id: '10',
-    name: 'Bebas Neue',
-    category: 'Display',
-    style: {
-      fontSize: '2.5rem',
-      fontWeight: 'normal',
-      fontFamily: 'Bebas Neue',
-      color: '#1f2937',
-      textTransform: 'uppercase'
+    {
+      id: '10',
+      name: 'Bebas Neue',
+      category: 'Display',
+      style: {
+        fontSize: '2.5rem',
+        fontWeight: 'normal',
+        fontFamily: 'Bebas Neue',
+        color: '#1f2937',
+        textTransform: 'uppercase'
+      },
+      preview: 'BOLD DISPLAY'
     },
-    preview: 'BOLD DISPLAY'
-  },
-  {
-    id: '11',
-    name: 'Raleway Light',
-    category: 'Display',
-    style: {
-      fontSize: '2rem',
-      fontWeight: '300',
-      fontFamily: 'Raleway',
-      color: '#6b7280'
+    {
+      id: '11',
+      name: 'Raleway Light',
+      category: 'Display',
+      style: {
+        fontSize: '2rem',
+        fontWeight: '300',
+        fontFamily: 'Raleway',
+        color: '#6b7280'
+      },
+      preview: 'Elegant & Light'
     },
-    preview: 'Elegant & Light'
-  },
 
-  // Special Use Cases
-  {
-    id: '12',
-    name: 'Crimson Quote',
-    category: 'Special',
-    style: {
-      fontSize: '1.25rem',
-      fontWeight: 'normal',
-      fontFamily: 'Crimson Text',
-      fontStyle: 'italic',
-      color: '#374151'
+    // Special Use Cases
+    {
+      id: '12',
+      name: 'Crimson Quote',
+      category: 'Special',
+      style: {
+        fontSize: '1.25rem',
+        fontWeight: 'normal',
+        fontFamily: 'Crimson Text',
+        fontStyle: 'italic',
+        color: '#374151'
+      },
+      preview: '"Beautiful serif quotation"'
     },
-    preview: '"Beautiful serif quotation"'
-  },
-  {
-    id: '13',
-    name: 'Nunito Caption',
-    category: 'Body',
-    style: {
-      fontSize: '0.875rem',
-      fontWeight: 'normal',
-      fontFamily: 'Nunito Sans',
-      color: '#6b7280'
+    {
+      id: '13',
+      name: 'Nunito Caption',
+      category: 'Body',
+      style: {
+        fontSize: '0.875rem',
+        fontWeight: 'normal',
+        fontFamily: 'Nunito Sans',
+        color: '#6b7280'
+      },
+      preview: 'Friendly caption text'
     },
-    preview: 'Friendly caption text'
-  },
 
-  // UI Elements
-  {
-    id: '14',
-    name: 'Inter Button',
-    category: 'UI',
-    style: {
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      fontFamily: 'Inter',
-      color: '#3b82f6',
-      textTransform: 'uppercase'
+    // UI Elements
+    {
+      id: '14',
+      name: 'Inter Button',
+      category: 'UI',
+      style: {
+        fontSize: '0.875rem',
+        fontWeight: '600',
+        fontFamily: 'Inter',
+        color: '#3b82f6',
+        textTransform: 'uppercase'
+      },
+      preview: 'BUTTON TEXT'
     },
-    preview: 'BUTTON TEXT'
-  },
-  {
-    id: '15',
-    name: 'Poppins Tag',
-    category: 'UI',
-    style: {
-      fontSize: '0.75rem',
-      fontWeight: '500',
-      fontFamily: 'Poppins',
-      color: '#059669',
-      textTransform: 'uppercase'
+    {
+      id: '15',
+      name: 'Poppins Tag',
+      category: 'UI',
+      style: {
+        fontSize: '0.75rem',
+        fontWeight: '500',
+        fontFamily: 'Poppins',
+        color: '#059669',
+        textTransform: 'uppercase'
+      },
+      preview: 'TAG LABEL'
     },
-    preview: 'TAG LABEL'
-  },
 
-  // Modern Sans-Serif Showcase
-  {
-    id: '16',
-    name: 'Work Sans Clean',
-    category: 'Headers',
-    style: {
-      fontSize: '1.5rem',
-      fontWeight: '500',
-      fontFamily: 'Work Sans',
-      color: '#111827'
+    // Modern Sans-Serif Showcase
+    {
+      id: '16',
+      name: 'Work Sans Clean',
+      category: 'Headers',
+      style: {
+        fontSize: '1.5rem',
+        fontWeight: '500',
+        fontFamily: 'Work Sans',
+        color: '#111827'
+      },
+      preview: 'Professional Header'
     },
-    preview: 'Professional Header'
-  },
-  {
-    id: '17',
-    name: 'DM Sans Modern',
-    category: 'Body',
-    style: {
-      fontSize: '1rem',
-      fontWeight: 'normal',
-      fontFamily: 'DM Sans',
-      color: '#4b5563'
+    {
+      id: '17',
+      name: 'DM Sans Modern',
+      category: 'Body',
+      style: {
+        fontSize: '1rem',
+        fontWeight: 'normal',
+        fontFamily: 'DM Sans',
+        color: '#4b5563'
+      },
+      preview: 'Contemporary body text design'
     },
-    preview: 'Contemporary body text design'
-  },
-  {
-    id: '18',
-    name: 'Plus Jakarta Sans',
-    category: 'UI',
-    style: {
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      fontFamily: 'Plus Jakarta Sans',
-      color: '#059669'
+    {
+      id: '18',
+      name: 'Plus Jakarta Sans',
+      category: 'UI',
+      style: {
+        fontSize: '0.875rem',
+        fontWeight: '600',
+        fontFamily: 'Plus Jakarta Sans',
+        color: '#059669'
+      },
+      preview: 'Modern UI Label'
     },
-    preview: 'Modern UI Label'
-  },
-  {
-    id: '19',
-    name: 'Space Grotesk',
-    category: 'Display',
-    style: {
-      fontSize: '2rem',
-      fontWeight: '700',
-      fontFamily: 'Space Grotesk',
-      color: '#1f2937'
+    {
+      id: '19',
+      name: 'Space Grotesk',
+      category: 'Display',
+      style: {
+        fontSize: '2rem',
+        fontWeight: '700',
+        fontFamily: 'Space Grotesk',
+        color: '#1f2937'
+      },
+      preview: 'Unique Display'
     },
-    preview: 'Unique Display'
-  },
-  {
-    id: '20',
-    name: 'Outfit Geometric',
-    category: 'Headers',
-    style: {
-      fontSize: '1.75rem',
-      fontWeight: '600',
-      fontFamily: 'Outfit',
-      color: '#374151'
+    {
+      id: '20',
+      name: 'Outfit Geometric',
+      category: 'Headers',
+      style: {
+        fontSize: '1.75rem',
+        fontWeight: '600',
+        fontFamily: 'Outfit',
+        color: '#374151'
+      },
+      preview: 'Geometric Header'
     },
-    preview: 'Geometric Header'
-  },
-  {
-    id: '21',
-    name: 'Manrope Friendly',
-    category: 'Body',
-    style: {
-      fontSize: '1rem',
-      fontWeight: 'normal',
-      fontFamily: 'Manrope',
-      color: '#4b5563'
+    {
+      id: '21',
+      name: 'Manrope Friendly',
+      category: 'Body',
+      style: {
+        fontSize: '1rem',
+        fontWeight: 'normal',
+        fontFamily: 'Manrope',
+        color: '#4b5563'
+      },
+      preview: 'Friendly and approachable text'
     },
-    preview: 'Friendly and approachable text'
-  },
-  {
-    id: '22',
-    name: 'IBM Plex Sans',
-    category: 'Body',
-    style: {
-      fontSize: '1rem',
-      fontWeight: 'normal',
-      fontFamily: 'IBM Plex Sans',
-      color: '#374151'
+    {
+      id: '22',
+      name: 'IBM Plex Sans',
+      category: 'Body',
+      style: {
+        fontSize: '1rem',
+        fontWeight: 'normal',
+        fontFamily: 'IBM Plex Sans',
+        color: '#374151'
+      },
+      preview: 'Corporate professional text'
     },
-    preview: 'Corporate professional text'
-  },
-  {
-    id: '23',
-    name: 'Lexend Readable',
-    category: 'Body',
-    style: {
-      fontSize: '1rem',
-      fontWeight: 'normal',
-      fontFamily: 'Lexend',
-      color: '#4b5563'
+    {
+      id: '23',
+      name: 'Lexend Readable',
+      category: 'Body',
+      style: {
+        fontSize: '1rem',
+        fontWeight: 'normal',
+        fontFamily: 'Lexend',
+        color: '#4b5563'
+      },
+      preview: 'Optimized for reading efficiency'
     },
-    preview: 'Optimized for reading efficiency'
-  },
 
-  // Premium Serif Fonts
-  {
-    id: '24',
-    name: 'Libre Baskerville',
-    category: 'Headers',
-    style: {
-      fontSize: '1.875rem',
-      fontWeight: '400',
-      fontFamily: 'Libre Baskerville',
-      color: '#1f2937'
+    // Premium Serif Fonts
+    {
+      id: '24',
+      name: 'Libre Baskerville',
+      category: 'Headers',
+      style: {
+        fontSize: '1.875rem',
+        fontWeight: '400',
+        fontFamily: 'Libre Baskerville',
+        color: '#1f2937'
+      },
+      preview: 'Classic Elegance'
     },
-    preview: 'Classic Elegance'
-  },
-  {
-    id: '25',
-    name: 'Cormorant Garamond',
-    category: 'Display',
-    style: {
-      fontSize: '2.25rem',
-      fontWeight: '400',
-      fontFamily: 'Cormorant Garamond',
-      color: '#374151'
+    {
+      id: '25',
+      name: 'Cormorant Garamond',
+      category: 'Display',
+      style: {
+        fontSize: '2.25rem',
+        fontWeight: '400',
+        fontFamily: 'Cormorant Garamond',
+        color: '#374151'
+      },
+      preview: 'Luxury Display'
     },
-    preview: 'Luxury Display'
-  },
-  {
-    id: '26',
-    name: 'EB Garamond',
-    category: 'Body',
-    style: {
-      fontSize: '1.125rem',
-      fontWeight: 'normal',
-      fontFamily: 'EB Garamond',
-      color: '#374151'
+    {
+      id: '26',
+      name: 'EB Garamond',
+      category: 'Body',
+      style: {
+        fontSize: '1.125rem',
+        fontWeight: 'normal',
+        fontFamily: 'EB Garamond',
+        color: '#374151'
+      },
+      preview: 'Traditional serif for articles'
     },
-    preview: 'Traditional serif for articles'
-  },
-  {
-    id: '27',
-    name: 'Spectral Modern',
-    category: 'Body',
-    style: {
-      fontSize: '1rem',
-      fontWeight: 'normal',
-      fontFamily: 'Spectral',
-      color: '#4b5563'
+    {
+      id: '27',
+      name: 'Spectral Modern',
+      category: 'Body',
+      style: {
+        fontSize: '1rem',
+        fontWeight: 'normal',
+        fontFamily: 'Spectral',
+        color: '#4b5563'
+      },
+      preview: 'Modern serif optimized for screens'
     },
-    preview: 'Modern serif optimized for screens'
-  },
 
-  // Bold Display Fonts
-  {
-    id: '28',
-    name: 'Archivo Black',
-    category: 'Display',
-    style: {
-      fontSize: '2.5rem',
-      fontWeight: 'normal',
-      fontFamily: 'Archivo Black',
-      color: '#111827'
+    // Bold Display Fonts
+    {
+      id: '28',
+      name: 'Archivo Black',
+      category: 'Display',
+      style: {
+        fontSize: '2.5rem',
+        fontWeight: 'normal',
+        fontFamily: 'Archivo Black',
+        color: '#111827'
+      },
+      preview: 'ULTRA BOLD'
     },
-    preview: 'ULTRA BOLD'
-  },
-  {
-    id: '29',
-    name: 'Anton Impact',
-    category: 'Display',
-    style: {
-      fontSize: '2.25rem',
-      fontWeight: 'normal',
-      fontFamily: 'Anton',
-      color: '#1f2937',
-      textTransform: 'uppercase'
+    {
+      id: '29',
+      name: 'Anton Impact',
+      category: 'Display',
+      style: {
+        fontSize: '2.25rem',
+        fontWeight: 'normal',
+        fontFamily: 'Anton',
+        color: '#1f2937',
+        textTransform: 'uppercase'
+      },
+      preview: 'MAXIMUM IMPACT'
     },
-    preview: 'MAXIMUM IMPACT'
-  },
-  {
-    id: '30',
-    name: 'Fjalla One',
-    category: 'Display',
-    style: {
-      fontSize: '2rem',
-      fontWeight: 'normal',
-      fontFamily: 'Fjalla One',
-      color: '#374151',
-      textTransform: 'uppercase'
+    {
+      id: '30',
+      name: 'Fjalla One',
+      category: 'Display',
+      style: {
+        fontSize: '2rem',
+        fontWeight: 'normal',
+        fontFamily: 'Fjalla One',
+        color: '#374151',
+        textTransform: 'uppercase'
+      },
+      preview: 'CONDENSED POWER'
     },
-    preview: 'CONDENSED POWER'
-  },
-  {
-    id: '31',
-    name: 'Kanit Thai Style',
-    category: 'Headers',
-    style: {
-      fontSize: '1.75rem',
-      fontWeight: '600',
-      fontFamily: 'Kanit',
-      color: '#1f2937'
+    {
+      id: '31',
+      name: 'Kanit Thai Style',
+      category: 'Headers',
+      style: {
+        fontSize: '1.75rem',
+        fontWeight: '600',
+        fontFamily: 'Kanit',
+        color: '#1f2937'
+      },
+      preview: 'Modern International'
     },
-    preview: 'Modern International'
-  },
 
-  // Fun & Creative Fonts
-  {
-    id: '32',
-    name: 'Fredoka Playful',
-    category: 'Fun',
-    style: {
-      fontSize: '1.5rem',
-      fontWeight: '500',
-      fontFamily: 'Fredoka',
-      color: '#7c3aed'
+    // Fun & Creative Fonts
+    {
+      id: '32',
+      name: 'Fredoka Playful',
+      category: 'Fun',
+      style: {
+        fontSize: '1.5rem',
+        fontWeight: '500',
+        fontFamily: 'Fredoka',
+        color: '#7c3aed'
+      },
+      preview: 'Fun & Friendly'
     },
-    preview: 'Fun & Friendly'
-  },
-  {
-    id: '33',
-    name: 'Lobster Script',
-    category: 'Fun',
-    style: {
-      fontSize: '1.75rem',
-      fontWeight: 'normal',
-      fontFamily: 'Lobster',
-      color: '#dc2626'
+    {
+      id: '33',
+      name: 'Lobster Script',
+      category: 'Fun',
+      style: {
+        fontSize: '1.75rem',
+        fontWeight: 'normal',
+        fontFamily: 'Lobster',
+        color: '#dc2626'
+      },
+      preview: 'Stylish Script'
     },
-    preview: 'Stylish Script'
-  },
-  {
-    id: '34',
-    name: 'Pacifico Casual',
-    category: 'Fun',
-    style: {
-      fontSize: '1.5rem',
-      fontWeight: 'normal',
-      fontFamily: 'Pacifico',
-      color: '#ea580c'
+    {
+      id: '34',
+      name: 'Pacifico Casual',
+      category: 'Fun',
+      style: {
+        fontSize: '1.5rem',
+        fontWeight: 'normal',
+        fontFamily: 'Pacifico',
+        color: '#ea580c'
+      },
+      preview: 'Casual & Relaxed'
     },
-    preview: 'Casual & Relaxed'
-  },
-  {
-    id: '35',
-    name: 'Dancing Script',
-    category: 'Fun',
-    style: {
-      fontSize: '1.75rem',
-      fontWeight: 'normal',
-      fontFamily: 'Dancing Script',
-      color: '#be185d'
+    {
+      id: '35',
+      name: 'Dancing Script',
+      category: 'Fun',
+      style: {
+        fontSize: '1.75rem',
+        fontWeight: 'normal',
+        fontFamily: 'Dancing Script',
+        color: '#be185d'
+      },
+      preview: 'Handwritten Style'
     },
-    preview: 'Handwritten Style'
-  },
 
-  // Code/Technical
-  {
-    id: '36',
-    name: 'Fira Code',
-    category: 'Code',
-    style: {
-      fontSize: '0.875rem',
-      fontWeight: 'normal',
-      fontFamily: 'Fira Code',
-      color: '#1f2937'
+    // Code/Technical
+    {
+      id: '36',
+      name: 'Fira Code',
+      category: 'Code',
+      style: {
+        fontSize: '0.875rem',
+        fontWeight: 'normal',
+        fontFamily: 'Fira Code',
+        color: '#1f2937'
+      },
+      preview: 'const code = "beautiful";'
     },
-    preview: 'const code = "beautiful";'
-  },
-  {
-    id: '37',
-    name: 'Source Code Pro',
-    category: 'Code',
-    style: {
-      fontSize: '0.875rem',
-      fontWeight: 'normal',
-      fontFamily: 'Source Code Pro',
-      color: '#374151'
-    },
-    preview: 'function() { return true; }'
-  }
-]
+    {
+      id: '37',
+      name: 'Source Code Pro',
+      category: 'Code',
+      style: {
+        fontSize: '0.875rem',
+        fontWeight: 'normal',
+        fontFamily: 'Source Code Pro',
+        color: '#374151'
+      },
+      preview: 'function() { return true; }'
+    }
+  ]
 
 const categories = ['All', 'Headers', 'Body', 'Display', 'Special', 'UI', 'Fun', 'Code']
 
@@ -537,9 +556,9 @@ export function TextsPanel({ onCollapse, className }: TextsPanelProps) {
       fontWeight: style.style.fontWeight || 'normal',
       fontStyle: style.style.fontStyle || 'normal',
       underline: false,
-      textAlign: (style.style as any).textAlign || 'left',
-      lineHeight: (style.style as any).lineHeight || 1.2,
-      charSpacing: (style.style as any).charSpacing || 0,
+      textAlign: style.style.textAlign || 'left',
+      lineHeight: style.style.lineHeight || 1.2,
+      charSpacing: style.style.charSpacing || 0,
       fill: style.style.color || '#000000',
       opacity: 1,
       shadow: null,
@@ -557,7 +576,7 @@ export function TextsPanel({ onCollapse, className }: TextsPanelProps) {
     }
 
     // Adjust positioning based on text alignment and category
-    let textX = centerX
+    const textX = centerX
     let textY = centerY
 
     // For display fonts, position them slightly higher and consider centering
@@ -575,7 +594,7 @@ export function TextsPanel({ onCollapse, className }: TextsPanelProps) {
     setTimeout(() => {
       const activeObject = activeDesign.canvas?.getActiveObject()
       if (activeObject && activeObject.type === 'i-text') {
-        ; (activeObject as any).set('text', displayText)
+        (activeObject as fabric.IText).set('text', displayText)
         activeDesign.canvas?.requestRenderAll()
       }
     }, 10)
@@ -639,7 +658,7 @@ export function TextsPanel({ onCollapse, className }: TextsPanelProps) {
                   fontFamily: style.style.fontFamily,
                   color: style.style.color,
                   fontStyle: style.style.fontStyle,
-                  textTransform: style.style.textTransform as any,
+                  textTransform: style.style.textTransform,
                   lineHeight: '1.2'
                 }}
               >

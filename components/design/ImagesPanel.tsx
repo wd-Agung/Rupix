@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
-import { Clock, Filter, Folder, FolderPlus, Image, MoreHorizontal, Search, Upload, Wand2 } from 'lucide-react'
+import { Clock, Filter, Folder, FolderPlus, Image as ImageIcon, MoreHorizontal, Search, Upload, Wand2 } from 'lucide-react'
 import { useState } from 'react'
 
 interface ImagesPanelProps {
@@ -240,7 +240,7 @@ export function ImagesPanel({ onCollapse, className }: ImagesPanelProps) {
               className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
             >
               <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                <Image className="h-8 w-8 text-gray-400" />
+                <ImageIcon className="h-8 w-8 text-gray-400" />
               </div>
 
               {/* Overlay */}
@@ -277,7 +277,7 @@ export function ImagesPanel({ onCollapse, className }: ImagesPanelProps) {
 
         {filteredImages.length === 0 && (
           <div className="text-center py-8">
-            <Image className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <ImageIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500 text-sm">No images found</p>
             {searchQuery && (
               <p className="text-gray-400 text-xs mt-1">Try adjusting your search</p>

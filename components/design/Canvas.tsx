@@ -95,7 +95,7 @@ export function Canvas({ className, width, height, onStateChange }: CanvasProps)
       },
     )
 
-  }, [activeDesign, width, height, onStateChange])
+  }, [activeDesign, onStateChange, getContainerSize, initCanvas, activeDesignId])
 
   if (!activeDesignId) {
     return <div className="flex items-center justify-center h-full"><p>Create a canvas to begin</p></div>
