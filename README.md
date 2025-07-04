@@ -14,7 +14,7 @@ A modern, web-based design tool built with Next.js, React, FabricJS, and Shadcn 
 - **Interactive Canvas**: Powered by FabricJS for smooth interactions
 - **Layer Management**: Organize design elements in layers
 - **Properties Panel**: Adjust colors, stroke, opacity, and more
-- **Export Options**: Export designs as PNG, JPG, SVG, or JSON
+- **Export Options**: Export designs as PNG and JPG
 
 ### 🎛️ User Interface
 - **Modern UI**: Built with Shadcn UI components
@@ -22,9 +22,9 @@ A modern, web-based design tool built with Next.js, React, FabricJS, and Shadcn 
 - **Tooltips**: Helpful hints for all tools
 - **Keyboard Shortcuts**: Quick access to tools
 
-### 🤖 AI Assistant
+### 🤖 AI Assistant (Work In Progress)
 - **Design Assistant**: AI-powered chat interface to help with design tasks
-- **Google Gemini Integration**: Powered by Google's Gemini AI model
+- **Multiple AI Provider**: Powered by Vercel's AI-SDK
 - **Design-focused Responses**: Tailored to provide design guidance and suggestions
 - **Canvas Tools**: AI can directly manipulate canvas objects through tools:
   - **Create Elements**: Add rectangles, circles, and text
