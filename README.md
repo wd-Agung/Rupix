@@ -115,14 +115,6 @@ The AI assistant can directly manipulate your canvas through natural language co
 
 The AI will execute these commands directly on your canvas and provide feedback about the actions performed.
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Write tests for new functionality
-4. Ensure all tests pass: `pnpm test`
-5. Submit a pull request
-
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
