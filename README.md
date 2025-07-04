@@ -54,7 +54,7 @@ A modern, web-based design tool built with Next.js, React, FabricJS, and Shadcn 
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd project-a
+cd rupix
 ```
 
 2. Install dependencies:
