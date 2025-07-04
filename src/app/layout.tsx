@@ -1,4 +1,5 @@
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import {
   Anton,
@@ -307,8 +308,8 @@ const dancingScript = Dancing_Script({
 });
 
 export const metadata: Metadata = {
-  title: "Rupix",
-  description: "Agentic Design Tool",
+  title: "Rupix - Agentic Design Tool",
+  description: "Rupix is an agentic design tool that uses AI to create designs.",
 };
 
 export default function RootLayout({
@@ -322,6 +323,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${poppins.variable} ${montserrat.variable} ${playfairDisplay.variable} ${merriweather.variable} ${oswald.variable} ${raleway.variable} ${lato.variable} ${openSans.variable} ${nunitoSans.variable} ${lora.variable} ${crimsonText.variable} ${bebasNeue.variable} ${firaCode.variable} ${sourceCodePro.variable} ${workSans.variable} ${dmSans.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${outfit.variable} ${manrope.variable} ${ibmPlexSans.variable} ${lexend.variable} ${rubik.variable} ${quicksand.variable} ${exo2.variable} ${kanit.variable} ${ubuntu.variable} ${sourceSans3.variable} ${robotoCondensed.variable} ${libreBaskerville.variable} ${cormorantGaramond.variable} ${ebGaramond.variable} ${spectral.variable} ${zillaSlab.variable} ${robotoSlab.variable} ${archivoBlack.variable} ${anton.variable} ${fjallaOne.variable} ${righteous.variable} ${fredoka.variable} ${lobster.variable} ${pacifico.variable} ${dancingScript.variable} antialiased`}
       >
         <Analytics />
+        <SpeedInsights />
         {children}
       </body>
     </html>

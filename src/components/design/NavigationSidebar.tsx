@@ -1,7 +1,8 @@
 'use client'
 
 import { cn } from '@/src/lib/utils'
-import { FileText, Image, Layers, Type } from 'lucide-react'
+import { FileText, Image as ImageIcon, Layers, Type } from 'lucide-react'
+import Image from 'next/image'
 
 interface NavigationSidebarProps {
   activeTab: string
@@ -11,15 +12,26 @@ interface NavigationSidebarProps {
 
 export function NavigationSidebar({ activeTab, onTabChange, className }: NavigationSidebarProps) {
   const navigationItems = [
-    { id: 'images', icon: Image, label: 'Images' },
+    { id: 'images', icon: ImageIcon, label: 'Images' },
     { id: 'texts', icon: Type, label: 'Texts' },
     { id: 'layers', icon: Layers, label: 'Layers' },
     { id: 'templates', icon: FileText, label: 'Templates' }
   ]
 
   return (
-    <div className={cn('w-16 bg-gray-800 flex flex-col border-r border-gray-700', className)}>
-      <div className="p-2 space-y-1">
+    <div className={cn('w-16 bg-gray-800 flex flex-col items-center border-r border-gray-700', className)}>
+      <div className="p-2 mt-2">
+        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+          <Image
+            src="/rupix_mascot.png"
+            alt="Mascot"
+            width={32}
+            height={32}
+            className="rounded-full"
+          />
+        </div>
+      </div>
+      <div className="p-2 space-y-1 mt-4">
         {navigationItems.map((item) => {
           const Icon = item.icon
           return (
