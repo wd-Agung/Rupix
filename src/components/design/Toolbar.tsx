@@ -20,6 +20,7 @@ import {
   Type,
   Undo
 } from 'lucide-react'
+import { HotkeyHelp } from './HotkeyHelp'
 
 interface ToolbarProps {
   className?: string
@@ -233,6 +234,11 @@ export function Toolbar({ className }: ToolbarProps) {
         </div>
 
         <Separator orientation="vertical" className="h-6" />
+
+        {/* Hotkey Help */}
+        <div className="flex items-center gap-1">
+          <HotkeyHelp />
+        </div>
 
       </div>
     </TooltipProvider>

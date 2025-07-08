@@ -1,8 +1,9 @@
 'use client'
 
+import { cleanupHotkeys, initializeHotkeys } from '@/src/lib/hotkeys'
 import { cn } from '@/src/lib/utils'
 import { Bot, Settings } from 'lucide-react'
-import { ElementRef, useRef, useState } from 'react'
+import { ElementRef, useEffect, useRef, useState } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { AgentPanel } from './AgentPanel'
 import { Canvas } from './Canvas'
@@ -27,6 +28,16 @@ export function DesignTool({ className }: DesignToolProps) {
 
   const leftPanelRef = useRef<ElementRef<typeof Panel>>(null)
   const rightPanelRef = useRef<ElementRef<typeof Panel>>(null)
+
+  // Initialize hotkeys on component mount
+  useEffect(() => {
+    initializeHotkeys()
+
+    // Cleanup hotkeys on unmount
+    return () => {
+      cleanupHotkeys()
+    }
+  }, [])
 
   const toggleLeftSidebar = () => {
     const panel = leftPanelRef.current

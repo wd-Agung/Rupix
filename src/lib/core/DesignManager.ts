@@ -111,7 +111,6 @@ export class DesignManager {
   private historyStack: { canvas: string; layers: Omit<CanvasLayer, 'object'>[] }[] = []
   private historyPointer = -1
   private isRestoringState = false // To prevent saving state during undo/redo
-  private _keydownHandler: ((e: KeyboardEvent) => void) | null = null
 
   private listeners: Set<DesignManagerListener> = new Set()
 
@@ -150,7 +149,6 @@ export class DesignManager {
     initAligningGuidelines(this.canvas)
 
     this.setupEventListeners()
-    this.setupKeyboardListeners()
     this.ruler = new CanvasRuler(this.canvas)
     this.ruler.enable()
 
@@ -195,31 +193,6 @@ export class DesignManager {
 
     // Initial cursor setup
     this.updateCursor()
-  }
-
-  private setupKeyboardListeners() {
-    if (!this.canvas) return
-
-    const canvasElement = this.canvas.getElement()
-
-    // Ensure canvas element can receive focus for keyboard events
-    canvasElement.setAttribute('tabindex', '0')
-
-    // Add keyboard event listeners
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Check if Ctrl+D (or Cmd+D on Mac) is pressed for duplicate
-      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
-        e.preventDefault()
-        this.duplicateActiveObject()
-      }
-    }
-
-    // Add event listeners to both document and canvas element
-    document.addEventListener('keydown', handleKeyDown)
-    canvasElement.addEventListener('keydown', handleKeyDown)
-
-    // Store references for cleanup
-    this._keydownHandler = handleKeyDown
   }
 
   private setupDragAndDrop() {
@@ -1182,6 +1155,9 @@ export class DesignManager {
         left: (cloned.left || 0) + offset,
         top: (cloned.top || 0) + offset,
       })
+      cloned.set('cornerStrokeColor', '#3b82f6')
+      cloned.set('borderColor', '#3b82f6')
+      cloned.set('borderScaleFactor', 2.5)
 
       // Add to canvas
       this.canvas.add(cloned)
@@ -1291,17 +1267,6 @@ export class DesignManager {
 
   // --- Cleanup ---
   public dispose() {
-    // Remove keyboard event listeners
-    const keydownHandler = this._keydownHandler
-    if (keydownHandler) {
-      document.removeEventListener('keydown', keydownHandler)
-      const canvasElement = this.canvas?.getElement()
-      if (canvasElement) {
-        canvasElement.removeEventListener('keydown', keydownHandler)
-      }
-      this._keydownHandler = null
-    }
-
     if (this.canvas) {
       this.canvas.dispose()
       this.canvas = null
@@ -1547,6 +1512,7 @@ export class DesignManager {
       objects.forEach(obj => {
         obj.set(controlOptions)
       })
+      console.log('objects', objects)
 
       // update layers array
       this.layers = objects.filter(obj => !(obj instanceof BaseLayer)).map(obj => {
