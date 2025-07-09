@@ -41,6 +41,8 @@ export interface CanvasState {
   backgroundColor: string
   // Camera controls
   cameraLocked: boolean
+  // Clipboard
+  clipboardData: any | null
 }
 
 export interface InitCanvasOptions {
@@ -101,6 +103,9 @@ export interface CanvasActions {
   // Camera controls
   setCameraLocked: (locked: boolean) => void
 
+  // Clipboard
+  setClipboardData: (data: any | null) => void
+
   // Layer management
   reorderLayer: (layerId: string, newIndex: number) => void
 
@@ -137,6 +142,8 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
   backgroundColor: 'transparent',
   // Camera controls
   cameraLocked: true, // Default to locked
+  // Clipboard
+  clipboardData: null,
 
   // Design management actions
   createNewDesign: (name?: string, dimensions?: { width: number; height: number }) => {
@@ -327,7 +334,19 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
   setBackgroundColor: (color) => set({ backgroundColor: color }),
 
   // Camera controls
-  setCameraLocked: (locked) => set({ cameraLocked: locked }),
+  setCameraLocked: (locked) => {
+    set({ cameraLocked: locked })
+    // Also update the active design's camera lock state
+    const design = get().getActiveDesign()
+    if (design) {
+      design.setCameraLocked(locked)
+    }
+  },
+
+  // Clipboard
+  setClipboardData: (data) => {
+    set({ clipboardData: data })
+  },
 
   // Layer management
   reorderLayer: (layerId: string, newIndex: number) => {

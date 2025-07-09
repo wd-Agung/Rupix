@@ -1,6 +1,7 @@
 import type { TEvent } from 'fabric';
 import * as fabric from 'fabric';
 import { v4 as uuidv4 } from 'uuid';
+import { useDesignStore } from '../stores/design-store';
 import { controlOptions, initControls } from './Control';
 import { CanvasRuler } from './ruler';
 import initAligningGuidelines from './ruler/SnapLine';
@@ -255,9 +256,17 @@ export class DesignManager {
 
     // Listen for paste events on the document
     document.addEventListener('paste', (e) => {
-      // Only handle paste if canvas has focus or is the active element
-      const canvasElement = this.canvas?.getElement()
-      if (!canvasElement || !this.isCanvasFocused()) return
+      const store = useDesignStore.getState()
+      const { clipboardData } = store
+
+      if (clipboardData) {
+        console.log('clipboardData', clipboardData)
+        this.pasteObject(clipboardData)
+        // Optionally clear clipboard data after pasting
+        store.setClipboardData(null);
+        e.preventDefault()
+        return
+      }
 
       const items = e.clipboardData?.items
       if (!items) return
@@ -284,12 +293,92 @@ export class DesignManager {
     })
   }
 
-  private isCanvasFocused(): boolean {
-    if (!this.canvas) return false
-    const canvasElement = this.canvas.getElement()
-    return document.activeElement === canvasElement ||
-      document.activeElement === canvasElement.parentElement ||
-      canvasElement.contains(document.activeElement)
+  public async pasteObject(clipboardData: any) {
+    if (!this.canvas || !clipboardData) return;
+
+    // Handle different object types
+    let newObject: fabric.Object | null = null;
+
+    const clipboardObject: any = {
+      ...clipboardData,
+      borderScaleFactor: 2.5,
+      cornerStrokeColor: '#3b82f6',
+      borderColor: '#3b82f6',
+    }
+
+    try {
+      switch (clipboardObject.type) {
+        case 'Rect':
+          newObject = new fabric.Rect(clipboardObject);
+          break;
+        case 'Circle':
+          newObject = new fabric.Circle(clipboardObject);
+          break;
+        case 'IText':
+          newObject = new fabric.IText(clipboardObject.text, clipboardObject);
+          break;
+        case 'Image':
+          // Handle image paste asynchronously
+          fabric.Image.fromURL(clipboardObject.src, {
+            crossOrigin: 'anonymous'
+          }).then((img: fabric.Image) => {
+            img.set({
+              ...clipboardObject,
+              left: (clipboardObject.left || 0) + 20,
+              top: (clipboardObject.top || 0) + 20
+            });
+            this.canvas!.add(img);
+            this.canvas!.setActiveObject(img);
+
+            // Ensure base layer stays at bottom
+            if (this.baseLayer) {
+              this.canvas!.sendObjectToBack(this.baseLayer);
+            }
+
+            this.canvas!.renderAll();
+
+            // Add to layers
+            this.addLayer({
+              name: `${clipboardObject.type} Copy`,
+              object: img,
+              visible: true,
+              locked: false
+            });
+          });
+          return;
+        default:
+          console.warn('Unknown object type for paste:', clipboardObject.type);
+          return;
+      }
+
+      if (newObject) {
+        // Offset the pasted object
+        newObject.set({
+          left: (clipboardObject.left || 0) + 20,
+          top: (clipboardObject.top || 0) + 20
+        });
+
+        this.canvas.add(newObject);
+        this.canvas.setActiveObject(newObject);
+
+        // Ensure base layer stays at bottom
+        if (this.baseLayer) {
+          this.canvas.sendObjectToBack(this.baseLayer);
+        }
+
+        this.canvas.renderAll();
+
+        // Add to layers
+        this.addLayer({
+          name: `${clipboardObject.type} Copy`,
+          object: newObject,
+          visible: true,
+          locked: false
+        });
+      }
+    } catch (error) {
+      console.error('Error pasting object:', error);
+    }
   }
 
   private getCanvasCenter(): { x: number; y: number } {

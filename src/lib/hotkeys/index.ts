@@ -18,9 +18,6 @@ export interface HotkeyConfig {
   preventDefault?: boolean;
 }
 
-// Clipboard data for copy/paste functionality
-let clipboardData: any = null;
-
 export class HotkeyManager {
   private static instance: HotkeyManager;
   private isInitialized = false;
@@ -109,102 +106,9 @@ export class HotkeyManager {
         if (design?.canvas) {
           const activeObject = design.canvas.getActiveObject();
           if (activeObject && !activeObject.isBaseLayer) {
-            clipboardData = activeObject.toObject();
+            // Use the store action to set clipboard data
+            store.setClipboardData(activeObject.toObject());
             console.log('Object copied to clipboard');
-          }
-        }
-      }
-    });
-
-    this.registerHotkey({
-      key: 'ctrl+v,command+v',
-      description: 'Paste object',
-      action: async () => {
-        if (!clipboardData) return;
-
-        const store = useDesignStore.getState();
-        const design = store.getActiveDesign();
-        if (design?.canvas) {
-          // Handle different object types
-          let newObject: fabric.Object | null = null;
-
-          const clipboardObject: any = clipboardData;
-          clipboardObject.borderScaleFactor = 2.5;
-          clipboardObject.cornerStrokeColor = '#3b82f6';
-          clipboardObject.borderColor = '#3b82f6';
-
-          try {
-            switch (clipboardObject.type) {
-              case 'Rect':
-                newObject = new fabric.Rect(clipboardObject);
-                break;
-              case 'Circle':
-                newObject = new fabric.Circle(clipboardObject);
-                break;
-              case 'IText':
-                newObject = new fabric.IText(clipboardObject.text, clipboardObject);
-                break;
-              case 'Image':
-                // Handle image paste asynchronously
-                fabric.Image.fromURL(clipboardObject.src, {
-                  crossOrigin: 'anonymous'
-                }).then((img: fabric.Image) => {
-                  img.set({
-                    ...clipboardObject,
-                    left: (clipboardObject.left || 0) + 20,
-                    top: (clipboardObject.top || 0) + 20
-                  });
-                  design.canvas!.add(img);
-                  design.canvas!.setActiveObject(img);
-
-                  // Ensure base layer stays at bottom
-                  if (design.baseLayer) {
-                    design.canvas!.sendObjectToBack(design.baseLayer);
-                  }
-
-                  design.canvas!.renderAll();
-
-                  // Add to layers
-                  design.addLayer({
-                    name: `${clipboardObject.type} Copy`,
-                    object: img,
-                    visible: true,
-                    locked: false
-                  });
-                });
-                return;
-              default:
-                console.warn('Unknown object type for paste:', clipboardObject.type);
-                return;
-            }
-
-            if (newObject) {
-              // Offset the pasted object
-              newObject.set({
-                left: (clipboardObject.left || 0) + 20,
-                top: (clipboardObject.top || 0) + 20
-              });
-
-              design.canvas.add(newObject);
-              design.canvas.setActiveObject(newObject);
-
-              // Ensure base layer stays at bottom
-              if (design.baseLayer) {
-                design.canvas.sendObjectToBack(design.baseLayer);
-              }
-
-              design.canvas.renderAll();
-
-              // Add to layers
-              design.addLayer({
-                name: `${clipboardObject.type} Copy`,
-                object: newObject,
-                visible: true,
-                locked: false
-              });
-            }
-          } catch (error) {
-            console.error('Error pasting object:', error);
           }
         }
       }
