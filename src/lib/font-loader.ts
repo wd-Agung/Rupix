@@ -1,13 +1,13 @@
-import { getFonts } from './indexedDB';
+import { getAllFontsFromCache } from './cache-storage';
 
 export const loadCustomFonts = async () => {
-  const fonts = await getFonts();
+  const fonts = await getAllFontsFromCache();
   const styleSheet = document.styleSheets[0];
   fonts.forEach(font => {
     const fontFace = `
       @font-face {
         font-family: '${font.name}';
-        src: url(${font.file});
+        src: url(${font.url});
       }
     `;
     styleSheet.insertRule(fontFace, styleSheet.cssRules.length);

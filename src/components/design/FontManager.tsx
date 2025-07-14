@@ -1,7 +1,11 @@
 'use client'
 
+import {
+  addFontToCache,
+  getAllFontsFromCache,
+  removeFontFromCache,
+} from '@/src/lib/cache-storage'
 import { loadCustomFonts, removeCustomFont } from '@/src/lib/font-loader'
-import { addFont, getFonts, removeFont } from '@/src/lib/indexedDB'
 import { useEffect, useState } from 'react'
 import { Button } from '../ui/button'
 import {
@@ -30,13 +34,13 @@ export function FontManager({ open, onOpenChange }: FontManagerProps) {
   }, [open])
 
   const loadFonts = async () => {
-    const customFonts = await getFonts()
+    const customFonts = await getAllFontsFromCache()
     setFonts(customFonts)
   }
 
   const handleAddFont = async () => {
     if (fontFile) {
-      await addFont(fontFile.name, fontFile)
+      await addFontToCache(fontFile.name, fontFile)
       setFontFile(null)
       loadFonts()
       loadCustomFonts() // Reload all fonts to apply the new one
@@ -44,7 +48,7 @@ export function FontManager({ open, onOpenChange }: FontManagerProps) {
   }
 
   const handleRemoveFont = async (name: string) => {
-    await removeFont(name)
+    await removeFontFromCache(name)
     removeCustomFont(name)
     loadFonts()
   }
