@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/src/components/ui/separator'
 import { Slider } from '@/src/components/ui/slider'
 import { useActiveDesign } from '@/src/lib/hooks/useActiveDesign'
+import { getFonts } from '@/src/lib/indexedDB'
 import { useDesignStore } from '@/src/lib/stores/design-store'
 import { cn } from '@/src/lib/utils'
 import * as fabric from 'fabric'
@@ -22,10 +23,12 @@ import {
   Palette,
   Plus,
   RotateCcw,
+  Settings,
   Underline
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { HexColorPicker } from 'react-colorful'
+import { FontManager } from './FontManager'
 
 interface PropertiesPanelProps {
   className?: string
@@ -190,6 +193,16 @@ export function PropertiesPanel({ className, onCollapse }: PropertiesPanelProps)
   const [showFillPicker, setShowFillPicker] = useState(false)
   const [showStrokePicker, setShowStrokePicker] = useState(false)
   const [activeObject, setActiveObject] = useState<fabric.Object | null>(null)
+  const [isFontManagerOpen, setFontManagerOpen] = useState(false)
+  const [customFonts, setCustomFonts] = useState<string[]>([])
+
+  useEffect(() => {
+    const loadCustomFonts = async () => {
+      const fonts = await getFonts()
+      setCustomFonts(fonts.map((font) => font.name))
+    }
+    loadCustomFonts()
+  }, [isFontManagerOpen])
 
   // Image filter states
   const [imageFilters, setImageFilters] = useState({
@@ -661,22 +674,36 @@ export function PropertiesPanel({ className, onCollapse }: PropertiesPanelProps)
             {/* Font Family */}
             <div className="space-y-2">
               <Label className="text-xs font-medium text-gray-600">Font Family</Label>
-              <Select
-                value={effectiveFontFamily}
-                onValueChange={(value) => handlePropertyChange({ fontFamily: value })}
-              >
-                <SelectTrigger className='w-full h-9 text-sm'>
-                  <SelectValue placeholder='Select a font' />
-                </SelectTrigger>
-                <SelectContent>
-                  {fontFamilies.map((font) => (
-                    <SelectItem key={font} value={font}>
-                      <span style={{ fontFamily: font }}>{font}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center space-x-2">
+                <Select
+                  value={effectiveFontFamily}
+                  onValueChange={(value) => handlePropertyChange({ fontFamily: value })}
+                >
+                  <SelectTrigger className="w-full h-9 text-sm">
+                    <SelectValue placeholder="Select a font" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fontFamilies.concat(customFonts).map((font) => (
+                      <SelectItem key={font} value={font}>
+                        <span style={{ fontFamily: font }}>{font}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="p-2 h-9"
+                  onClick={() => setFontManagerOpen(true)}
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
+            <FontManager
+              open={isFontManagerOpen}
+              onOpenChange={setFontManagerOpen}
+            />
 
             {/* Font Size */}
             <div className="space-y-2">
