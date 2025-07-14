@@ -1,17 +1,20 @@
 import { getAllFontsFromCache } from './cache-storage';
 
+export const loadFont = async (fontName: string, fontUrl: string) => {
+  const fontFace = new FontFace(fontName, `url(${fontUrl})`);
+  try {
+    await fontFace.load();
+    document.fonts.add(fontFace);
+  } catch (e) {
+    console.error(`Failed to load font ${fontName}:`, e);
+  }
+};
+
 export const loadCustomFonts = async () => {
   const fonts = await getAllFontsFromCache();
-  const styleSheet = document.styleSheets[0];
-  fonts.forEach(font => {
-    const fontFace = `
-      @font-face {
-        font-family: '${font.name}';
-        src: url(${font.url});
-      }
-    `;
-    styleSheet.insertRule(fontFace, styleSheet.cssRules.length);
-  });
+  for (const font of fonts) {
+    await loadFont(font.name, font.url);
+  }
 };
 
 export const removeCustomFont = (fontName: string) => {

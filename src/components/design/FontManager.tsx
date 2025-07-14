@@ -42,8 +42,8 @@ export function FontManager({ open, onOpenChange }: FontManagerProps) {
     if (fontFile) {
       await addFontToCache(fontFile.name, fontFile)
       setFontFile(null)
+      await loadCustomFonts() // Reload all fonts to apply the new one
       loadFonts()
-      loadCustomFonts() // Reload all fonts to apply the new one
     }
   }
 

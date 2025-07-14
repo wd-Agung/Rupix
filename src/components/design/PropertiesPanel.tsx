@@ -12,6 +12,7 @@ import { useDesignStore } from '@/src/lib/stores/design-store'
 import { cn } from '@/src/lib/utils'
 import * as fabric from 'fabric'
 import { getAllFontsFromCache } from '@/src/lib/cache-storage'
+import { loadFont } from '@/src/lib/font-loader'
 import {
   AlignCenter,
   AlignLeft,
@@ -515,7 +516,15 @@ export function PropertiesPanel({ className, onCollapse }: PropertiesPanelProps)
     effectiveShadow = textObject.shadow || globalShadow
   }
 
-  const handlePropertyChange = (properties: any) => {
+  const handlePropertyChange = async (properties: any) => {
+    if (properties.fontFamily) {
+      const allFonts = await getAllFontsFromCache()
+      const customFont = allFonts.find(f => f.name === properties.fontFamily)
+      if (customFont) {
+        await loadFont(customFont.name, customFont.url)
+      }
+    }
+
     if (isObjectSelected && activeObject) {
       // Update the selected object directly
       activeObject.set(properties)
