@@ -1,5 +1,6 @@
 'use client'
 
+import { Badge } from '@/src/components/ui/badge'
 import { Button } from '@/src/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card'
 import { Input } from '@/src/components/ui/input'
@@ -692,9 +693,17 @@ export function PropertiesPanel({ className, onCollapse }: PropertiesPanelProps)
                     <SelectValue placeholder="Select a font" />
                   </SelectTrigger>
                   <SelectContent>
-                    {fontFamilies.concat(customFonts).map((font) => (
+                    {fontFamilies.map((font) => (
                       <SelectItem key={font} value={font}>
                         <span style={{ fontFamily: font }}>{font}</span>
+                      </SelectItem>
+                    ))}
+                    {customFonts.map((font) => (
+                      <SelectItem key={font} value={font}>
+                        <div className="flex items-center justify-between w-full">
+                          <span style={{ fontFamily: font }}>{font}</span>
+                          <Badge variant="secondary">Custom</Badge>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
