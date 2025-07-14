@@ -527,6 +527,121 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
           // Duplication is async, so we don't wait for it in this synchronous context
         })
         return { success: true, data: 'Duplicating selected object' }
+      } else if (toolName === 'groupObjects') {
+        const activeObject = design.canvas.getActiveObject()
+        if (!activeObject || activeObject.type !== 'activeSelection') {
+          return { success: false, data: 'No objects selected to group' }
+        }
+        const group = (activeObject as fabric.ActiveSelection).toGroup()
+        design.canvas.requestRenderAll()
+        return { success: true, data: 'Grouped selected objects' }
+      } else if (toolName === 'ungroupObjects') {
+        const activeObject = design.canvas.getActiveObject()
+        if (!activeObject || activeObject.type !== 'group') {
+          return { success: false, data: 'No group selected to ungroup' }
+        }
+        const group = activeObject as fabric.Group
+        group.toActiveSelection()
+        design.canvas.requestRenderAll()
+        return { success: true, data: 'Ungrouped selected objects' }
+      } else if (toolName === 'getCanvasContent') {
+        const objects = design.canvas.getObjects()
+        const objectsJSON = objects.map(obj => obj.toJSON())
+        return { success: true, data: `Canvas content: ${JSON.stringify(objectsJSON)}` }
+      } else if (toolName === 'bringToFront') {
+        const activeObject = design.canvas.getActiveObject()
+        if (!activeObject) {
+          return { success: false, data: 'No object selected' }
+        }
+        activeObject.bringToFront()
+        design.canvas.requestRenderAll()
+        return { success: true, data: 'Brought object to front' }
+      } else if (toolName === 'sendToBack') {
+        const activeObject = design.canvas.getActiveObject()
+        if (!activeObject) {
+          return { success: false, data: 'No object selected' }
+        }
+        activeObject.sendToBack()
+        design.canvas.requestRenderAll()
+        return { success: true, data: 'Sent object to back' }
+      } else if (toolName === 'alignObjects') {
+        const activeObject = design.canvas.getActiveObject()
+        if (!activeObject || activeObject.type !== 'activeSelection') {
+          return { success: false, data: 'No objects selected to align' }
+        }
+        const selection = activeObject as fabric.ActiveSelection
+        switch (params.alignment) {
+          case 'left':
+            selection.set('left', selection.left)
+            break
+          case 'center-h':
+            selection.set('left', selection.left! + selection.width! / 2 - selection.width! / 2)
+            break
+          case 'right':
+            selection.set('left', selection.left! + selection.width! - selection.width!)
+            break
+          case 'top':
+            selection.set('top', selection.top)
+            break
+          case 'center-v':
+            selection.set('top', selection.top! + selection.height! / 2 - selection.height! / 2)
+            break
+          case 'bottom':
+            selection.set('top', selection.top! + selection.height! - selection.height!)
+            break
+          default:
+            return { success: false, data: `Invalid alignment: ${params.alignment}` }
+        }
+        design.canvas.requestRenderAll()
+        return { success: true, data: `Aligned objects to ${params.alignment}` }
+      } else if (toolName === 'distributeObjects') {
+        const activeObject = design.canvas.getActiveObject()
+        if (!activeObject || activeObject.type !== 'activeSelection') {
+          return { success: false, data: 'No objects selected to distribute' }
+        }
+        const selection = activeObject as fabric.ActiveSelection
+        const objects = selection.getObjects()
+        if (objects.length < 3) {
+          return { success: false, data: 'Need at least 3 objects to distribute' }
+        }
+        if (params.direction === 'horizontal') {
+          const totalWidth = objects.reduce((sum, obj) => sum + obj.width! * obj.scaleX!, 0)
+          const spacing = (selection.width! - totalWidth) / (objects.length - 1)
+          let left = selection.left!
+          objects.forEach(obj => {
+            obj.set('left', left)
+            left += obj.width! * obj.scaleX! + spacing
+          })
+        } else if (params.direction === 'vertical') {
+          const totalHeight = objects.reduce((sum, obj) => sum + obj.height! * obj.scaleY!, 0)
+          const spacing = (selection.height! - totalHeight) / (objects.length - 1)
+          let top = selection.top!
+          objects.forEach(obj => {
+            obj.set('top', top)
+            top += obj.height! * obj.scaleY! + spacing
+          })
+        } else {
+          return { success: false, data: `Invalid direction: ${params.direction}` }
+        }
+        design.canvas.requestRenderAll()
+        return { success: true, data: `Distributed objects ${params.direction}` }
+      } else if (toolName === 'zoomIn') {
+        const zoom = design.canvas.getZoom()
+        design.canvas.zoomToPoint(new fabric.Point(design.canvas.width! / 2, design.canvas.height! / 2), zoom * 1.2)
+        return { success: true, data: `Zoomed in to ${zoom * 1.2}` }
+      } else if (toolName === 'zoomOut') {
+        const zoom = design.canvas.getZoom()
+        design.canvas.zoomToPoint(new fabric.Point(design.canvas.width! / 2, design.canvas.height! / 2), zoom / 1.2)
+        return { success: true, data: `Zoomed out to ${zoom / 1.2}` }
+      } else if (toolName === 'resetZoom') {
+        design.canvas.zoomToPoint(new fabric.Point(design.canvas.width! / 2, design.canvas.height! / 2), 1)
+        return { success: true, data: 'Zoom reset to 1' }
+      } else if (toolName === 'pan') {
+        design.canvas.relativePan(new fabric.Point(params.x, params.y))
+        return { success: true, data: `Panned to (${params.x}, ${params.y})` }
+      } else if (toolName === 'getHistory') {
+        const history = design.getHistory()
+        return { success: true, data: `History: ${JSON.stringify(history)}` }
       }
     } catch (error) {
       console.error('Error executing canvas tool:', error)
