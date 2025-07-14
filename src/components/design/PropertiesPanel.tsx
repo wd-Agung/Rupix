@@ -1,5 +1,6 @@
 'use client'
 
+import { Badge } from '@/src/components/ui/badge'
 import { Button } from '@/src/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card'
 import { Input } from '@/src/components/ui/input'
@@ -11,6 +12,8 @@ import { useActiveDesign } from '@/src/lib/hooks/useActiveDesign'
 import { useDesignStore } from '@/src/lib/stores/design-store'
 import { cn } from '@/src/lib/utils'
 import * as fabric from 'fabric'
+import { getAllFontsFromCache } from '@/src/lib/cache-storage'
+import { loadFont } from '@/src/lib/font-loader'
 import {
   AlignCenter,
   AlignLeft,
@@ -22,10 +25,12 @@ import {
   Palette,
   Plus,
   RotateCcw,
+  Settings,
   Underline
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { HexColorPicker } from 'react-colorful'
+import { FontManager } from './FontManager'
 
 interface PropertiesPanelProps {
   className?: string
@@ -190,6 +195,16 @@ export function PropertiesPanel({ className, onCollapse }: PropertiesPanelProps)
   const [showFillPicker, setShowFillPicker] = useState(false)
   const [showStrokePicker, setShowStrokePicker] = useState(false)
   const [activeObject, setActiveObject] = useState<fabric.Object | null>(null)
+  const [isFontManagerOpen, setFontManagerOpen] = useState(false)
+  const [customFonts, setCustomFonts] = useState<string[]>([])
+
+  useEffect(() => {
+    const loadCustomFonts = async () => {
+      const fonts = await getAllFontsFromCache()
+      setCustomFonts(fonts.map((font) => font.name))
+    }
+    loadCustomFonts()
+  }, [isFontManagerOpen])
 
   // Image filter states
   const [imageFilters, setImageFilters] = useState({
@@ -502,7 +517,15 @@ export function PropertiesPanel({ className, onCollapse }: PropertiesPanelProps)
     effectiveShadow = textObject.shadow || globalShadow
   }
 
-  const handlePropertyChange = (properties: any) => {
+  const handlePropertyChange = async (properties: any) => {
+    if (properties.fontFamily) {
+      const allFonts = await getAllFontsFromCache()
+      const customFont = allFonts.find(f => f.name === properties.fontFamily)
+      if (customFont) {
+        await loadFont(customFont.name, customFont.url)
+      }
+    }
+
     if (isObjectSelected && activeObject) {
       // Update the selected object directly
       activeObject.set(properties)
@@ -661,22 +684,44 @@ export function PropertiesPanel({ className, onCollapse }: PropertiesPanelProps)
             {/* Font Family */}
             <div className="space-y-2">
               <Label className="text-xs font-medium text-gray-600">Font Family</Label>
-              <Select
-                value={effectiveFontFamily}
-                onValueChange={(value) => handlePropertyChange({ fontFamily: value })}
-              >
-                <SelectTrigger className='w-full h-9 text-sm'>
-                  <SelectValue placeholder='Select a font' />
-                </SelectTrigger>
-                <SelectContent>
-                  {fontFamilies.map((font) => (
-                    <SelectItem key={font} value={font}>
-                      <span style={{ fontFamily: font }}>{font}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center space-x-2">
+                <Select
+                  value={effectiveFontFamily}
+                  onValueChange={(value) => handlePropertyChange({ fontFamily: value })}
+                >
+                  <SelectTrigger className="w-full h-9 text-sm">
+                    <SelectValue placeholder="Select a font" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fontFamilies.map((font) => (
+                      <SelectItem key={font} value={font}>
+                        <span style={{ fontFamily: font }}>{font}</span>
+                      </SelectItem>
+                    ))}
+                    {customFonts.map((font) => (
+                      <SelectItem key={font} value={font}>
+                        <div className="flex items-center justify-between w-full">
+                          <span style={{ fontFamily: font }}>{font}</span>
+                          <Badge variant="secondary">Custom</Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="p-2 h-9"
+                  onClick={() => setFontManagerOpen(true)}
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
+            <FontManager
+              open={isFontManagerOpen}
+              onOpenChange={setFontManagerOpen}
+            />
 
             {/* Font Size */}
             <div className="space-y-2">
