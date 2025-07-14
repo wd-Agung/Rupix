@@ -22,6 +22,7 @@ declare module 'fabric' {
     isBaseLayer?: boolean;
     name?: string;
     text?: string;
+    originalSrc?: string
   }
 }
 
@@ -327,6 +328,7 @@ export class DesignManager {
               left: (clipboardObject.left || 0) + 20,
               top: (clipboardObject.top || 0) + 20
             });
+            img.originalSrc = clipboardObject.originalSrc || clipboardObject.src
             this.canvas!.add(img);
             this.canvas!.setActiveObject(img);
 
@@ -1114,6 +1116,7 @@ export class DesignManager {
         cornerStyle: 'rect',
         borderScaleFactor: 2,
       })
+      img.originalSrc = dataUrl
 
       this.canvas.add(img)
       this.canvas.setActiveObject(img)
@@ -1155,6 +1158,7 @@ export class DesignManager {
         cornerStyle: 'rect',
         borderScaleFactor: 2,
       })
+      img.originalSrc = dataUrl
 
       this.canvas.add(img)
       this.canvas.setActiveObject(img)
@@ -1168,6 +1172,52 @@ export class DesignManager {
       this.addLayer({ name: name || 'Image', object: img, visible: true, locked: false })
     }).catch((error) => {
       console.error('Failed to load image:', error)
+    })
+  }
+
+  public replaceImage(dataUrl: string) {
+    if (!this.canvas) return
+
+    const activeObject = this.canvas.getActiveObject()
+    if (!activeObject || activeObject.type !== 'image') {
+      return
+    }
+
+    const oldImage = activeObject as fabric.Image
+    const originalSrc = oldImage.originalSrc || oldImage.getSrc()
+
+    fabric.Image.fromURL(dataUrl, {
+      crossOrigin: 'anonymous'
+    }).then((newImage: fabric.Image) => {
+      if (!this.canvas) return
+      newImage.set({
+        left: oldImage.left,
+        top: oldImage.top,
+        angle: oldImage.angle,
+        scaleX: oldImage.scaleX,
+        scaleY: oldImage.scaleY,
+        cornerColor: '#ffffff',
+        cornerStrokeColor: '#3b82f6',
+        borderColor: '#3b82f6',
+        cornerSize: 8,
+        transparentCorners: false,
+        cornerStyle: 'rect',
+        borderScaleFactor: 2,
+      })
+      newImage.originalSrc = originalSrc
+
+      this.canvas.remove(oldImage)
+      this.canvas.add(newImage)
+      this.canvas.setActiveObject(newImage)
+
+      const layer = this.layers.find(l => l.object === oldImage)
+      if (layer) {
+        layer.object = newImage
+        newImage.layerId = layer.id // Ensure the new object has the same layerId
+      }
+
+      this.canvas.renderAll()
+      this.saveState()
     })
   }
 
@@ -1235,6 +1285,9 @@ export class DesignManager {
     try {
       // Clone the active object using the fabric clone method
       const cloned = await activeObject.clone()
+      if (activeObject.originalSrc) {
+        cloned.originalSrc = activeObject.originalSrc
+      }
 
       if (!this.canvas) return null
 
@@ -1566,7 +1619,7 @@ export class DesignManager {
     const serializableLayers = this.layers.map(({ object, ...rest }) => rest)
 
     const state = {
-      canvas: JSON.stringify(this.canvas.toJSON()),
+      canvas: JSON.stringify((this.canvas as any).toJSON(['layerId', 'originalSrc', 'isBaseLayer', 'name', 'text'])),
       layers: serializableLayers
     }
 

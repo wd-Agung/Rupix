@@ -40,7 +40,9 @@ export function FontManager({ open, onOpenChange }: FontManagerProps) {
 
   const handleAddFont = async () => {
     if (fontFile) {
-      await addFontToCache(fontFile.name, fontFile)
+      // trim extension from font file name
+      const fontName = fontFile.name.split('.').slice(0, -1).join('.')
+      await addFontToCache(fontName, fontFile)
       setFontFile(null)
       await loadCustomFonts() // Reload all fonts to apply the new one
       loadFonts()

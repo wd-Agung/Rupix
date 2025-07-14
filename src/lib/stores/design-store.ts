@@ -111,6 +111,9 @@ export interface CanvasActions {
 
   // AI Tool Functions
   executeCanvasTool: (toolName: string, params: Record<string, any>) => { success: boolean; data: string } | void
+
+  // Image manipulation
+  replaceImage: (dataUrl: string) => void
 }
 
 export type DesignStore = CanvasState & CanvasActions
@@ -353,6 +356,13 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
     const design = get().getActiveDesign()
     if (design) {
       design.reorderLayer(layerId, newIndex)
+    }
+  },
+
+  replaceImage: (dataUrl: string) => {
+    const design = get().getActiveDesign()
+    if (design) {
+      design.replaceImage(dataUrl)
     }
   },
 

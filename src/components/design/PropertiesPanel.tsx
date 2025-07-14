@@ -8,12 +8,12 @@ import { Label } from '@/src/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select'
 import { Separator } from '@/src/components/ui/separator'
 import { Slider } from '@/src/components/ui/slider'
+import { getAllFontsFromCache } from '@/src/lib/cache-storage'
+import { loadFont } from '@/src/lib/font-loader'
 import { useActiveDesign } from '@/src/lib/hooks/useActiveDesign'
 import { useDesignStore } from '@/src/lib/stores/design-store'
 import { cn } from '@/src/lib/utils'
 import * as fabric from 'fabric'
-import { getAllFontsFromCache } from '@/src/lib/cache-storage'
-import { loadFont } from '@/src/lib/font-loader'
 import {
   AlignCenter,
   AlignLeft,
@@ -700,9 +700,9 @@ export function PropertiesPanel({ className, onCollapse }: PropertiesPanelProps)
                     ))}
                     {customFonts.map((font) => (
                       <SelectItem key={font} value={font}>
-                        <div className="flex items-center justify-between w-full">
-                          <span style={{ fontFamily: font }}>{font}</span>
-                          <Badge variant="secondary">Custom</Badge>
+                        <div className="flex items-center justify-between w-full gap-2">
+                          <span style={{ fontFamily: font }} className="text-ellipsis">{font}</span>
+                          <Badge variant="default" className="text-xs">Custom</Badge>
                         </div>
                       </SelectItem>
                     ))}

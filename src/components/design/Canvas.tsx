@@ -1,8 +1,17 @@
 'use client'
 
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger
+} from '@/src/components/ui/context-menu'
 import { useDesignStore } from '@/src/lib/stores/design-store'
 import { cn } from '@/src/lib/utils'
-import { useCallback, useEffect, useRef } from 'react'
+import type * as fabric from 'fabric'
+import { CopyIcon, CropIcon, TrashIcon } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { CropImageDialog } from './CropImageDialog'
 
 interface CanvasProps {
   className?: string
@@ -13,9 +22,55 @@ interface CanvasProps {
 
 export function Canvas({ className, width, height, onStateChange }: CanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { getActiveDesign, initCanvas, activeDesignId, selectedTool, fillColor, strokeColor, strokeWidth, fontSize, fontFamily, opacity } = useDesignStore()
+  const {
+    getActiveDesign,
+    initCanvas,
+    activeDesignId,
+    selectedTool,
+    fillColor,
+    strokeColor,
+    strokeWidth,
+    fontSize,
+    fontFamily,
+    opacity,
+    executeCanvasTool,
+    replaceImage,
+  } = useDesignStore()
 
   const activeDesign = getActiveDesign()
+  const [hasActiveObject, setHasActiveObject] = useState(false)
+  const [activeObjectType, setActiveObjectType] = useState<string | null>(null)
+  const [isCropDialogOpen, setIsCropDialogOpen] = useState(false)
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null)
+
+  // Listen for active object changes
+  useEffect(() => {
+    if (!activeDesign?.canvas) return
+    const canvas = activeDesign.canvas
+    const update = () => {
+      const obj = canvas.getActiveObject()
+      setHasActiveObject(!!obj && !(obj as any).isBaseLayer)
+      setActiveObjectType(obj?.type || null)
+    }
+    canvas.on('selection:created', update)
+    canvas.on('selection:updated', update)
+    canvas.on('selection:cleared', update)
+    update()
+    return () => {
+      canvas.off('selection:created', update)
+      canvas.off('selection:updated', update)
+      canvas.off('selection:cleared', update)
+    }
+  }, [activeDesign])
+
+  // Prevent default browser context menu on canvas
+  useEffect(() => {
+    const el = containerRef.current?.querySelector('canvas')
+    if (!el) return
+    const handler = (e: Event) => e.preventDefault()
+    el.addEventListener('contextmenu', handler)
+    return () => el.removeEventListener('contextmenu', handler)
+  }, [activeDesignId])
 
   // Get container dimensions
   const getContainerSize = useCallback(() => {
@@ -101,23 +156,67 @@ export function Canvas({ className, width, height, onStateChange }: CanvasProps)
     return <div className="flex items-center justify-center h-full"><p>Create a canvas to begin</p></div>
   }
 
+  // Context menu actions
+  const handleDuplicate = useCallback(() => {
+    executeCanvasTool('duplicateSelectedObject', {})
+  }, [executeCanvasTool])
+  const handleDelete = useCallback(() => {
+    executeCanvasTool('deleteSelectedObject', {})
+  }, [executeCanvasTool])
+
+  const handleOpenCropDialog = useCallback(() => {
+    const obj = activeDesign?.canvas?.getActiveObject() as fabric.Image
+    if (obj && obj.type === 'image') {
+      const originalSrc = obj.originalSrc || obj.getSrc()
+      setImageToCrop(originalSrc)
+      setIsCropDialogOpen(true)
+    }
+  }, [activeDesign])
+
+  const handleCrop = useCallback((croppedImageUrl: string) => {
+    replaceImage(croppedImageUrl)
+  }, [replaceImage])
+
   return (
-    <div
-      key={activeDesignId}
-      ref={containerRef}
-      className={cn('relative w-full h-full', className)}
-      style={{ cursor: selectedTool === 'select' ? 'default' : 'crosshair' }}
-      tabIndex={0}
-      onFocus={() => {
-        // Focus the canvas element when container gets focus
-        if (containerRef.current) {
-          const canvas = containerRef.current.querySelector('canvas')
-          if (canvas) {
-            canvas.focus()
-          }
-        }
-      }}
-    />
+    <>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <div
+            key={activeDesignId}
+            ref={containerRef}
+            className={cn('relative w-full h-full', className)}
+            style={{ cursor: selectedTool === 'select' ? 'default' : 'crosshair' }}
+            tabIndex={0}
+            onFocus={() => {
+              // Focus the canvas element when container gets focus
+              if (containerRef.current) {
+                const canvas = containerRef.current.querySelector('canvas')
+                if (canvas) {
+                  canvas.focus()
+                }
+              }
+            }}
+          />
+        </ContextMenuTrigger>
+        {hasActiveObject && (
+          <ContextMenuContent>
+            {activeObjectType === 'image' && (
+              <ContextMenuItem onSelect={handleOpenCropDialog}><CropIcon /> Crop Image</ContextMenuItem>
+            )}
+            <ContextMenuItem onSelect={handleDuplicate}><CopyIcon /> Duplicate</ContextMenuItem>
+            <ContextMenuItem onSelect={handleDelete} variant="destructive"><TrashIcon /> Delete</ContextMenuItem>
+          </ContextMenuContent>
+        )}
+      </ContextMenu>
+      {isCropDialogOpen && imageToCrop && (
+        <CropImageDialog
+          isOpen={isCropDialogOpen}
+          onClose={() => setIsCropDialogOpen(false)}
+          imageSrc={imageToCrop}
+          onCrop={handleCrop}
+        />
+      )}
+    </>
   )
 }
 
