@@ -124,7 +124,62 @@ export async function POST(req: Request) {
         deleteSelectedObject: tool({
           description: 'Delete the currently selected object',
           parameters: z.object({}),
-        })
+        }),
+        groupObjects: tool({
+          description: 'Group the selected objects',
+          parameters: z.object({}),
+        }),
+        ungroupObjects: tool({
+          description: 'Ungroup the selected objects',
+          parameters: z.object({}),
+        }),
+        getCanvasContent: tool({
+          description: 'Get the content of the canvas',
+          parameters: z.object({}),
+        }),
+        bringToFront: tool({
+          description: 'Bring the selected object to the front',
+          parameters: z.object({}),
+        }),
+        sendToBack: tool({
+          description: 'Send the selected object to the back',
+          parameters: z.object({}),
+        }),
+        alignObjects: tool({
+          description: 'Align the selected objects',
+          parameters: z.object({
+            alignment: z.enum(['left', 'center-h', 'right', 'top', 'center-v', 'bottom']),
+          }),
+        }),
+        distributeObjects: tool({
+          description: 'Distribute the selected objects',
+          parameters: z.object({
+            direction: z.enum(['horizontal', 'vertical']),
+          }),
+        }),
+        zoomIn: tool({
+          description: 'Zoom in the canvas',
+          parameters: z.object({}),
+        }),
+        zoomOut: tool({
+          description: 'Zoom out the canvas',
+          parameters: z.object({}),
+        }),
+        resetZoom: tool({
+          description: 'Reset the canvas zoom',
+          parameters: z.object({}),
+        }),
+        pan: tool({
+          description: 'Pan the canvas',
+          parameters: z.object({
+            x: z.number().describe('X amount to pan'),
+            y: z.number().describe('Y amount to pan'),
+          }),
+        }),
+        getHistory: tool({
+          description: 'Get the undo/redo history',
+          parameters: z.object({}),
+        }),
       }
     })
 
