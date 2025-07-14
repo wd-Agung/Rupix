@@ -100,7 +100,7 @@ export function LayersPanel({ className, onCollapse }: LayersPanelProps) {
   // Show message if no active tab
   if (!activeDesign) {
     return (
-      <Card className={cn('w-80', className)}>
+      <Card className={cn(className)}>
         <CardHeader>
           <CardTitle className="text-lg flex items-center justify-between">
             Layers
@@ -128,7 +128,7 @@ export function LayersPanel({ className, onCollapse }: LayersPanelProps) {
   }
 
   return (
-    <Card className={cn('w-80 shadow-none border-none', className)}>
+    <Card className={cn('shadow-none border-none', className)}>
       <CardHeader>
         <CardTitle className="text-lg flex items-center justify-between">
           <div className="flex flex-col">
