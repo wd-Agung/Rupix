@@ -43,13 +43,34 @@ export function Canvas({ className, width, height, onStateChange }: CanvasProps)
   const [isCropDialogOpen, setIsCropDialogOpen] = useState(false)
   const [imageToCrop, setImageToCrop] = useState<string | null>(null)
 
+  // Context menu actions
+  const handleDuplicate = useCallback(() => {
+    executeCanvasTool('duplicateSelectedObject', {})
+  }, [executeCanvasTool])
+  const handleDelete = useCallback(() => {
+    executeCanvasTool('deleteSelectedObject', {})
+  }, [executeCanvasTool])
+
+  const handleOpenCropDialog = useCallback(() => {
+    const obj = activeDesign?.canvas?.getActiveObject() as fabric.Image
+    if (obj && obj.type === 'image') {
+      const originalSrc = obj.originalSrc || obj.getSrc()
+      setImageToCrop(originalSrc)
+      setIsCropDialogOpen(true)
+    }
+  }, [activeDesign])
+
+  const handleCrop = useCallback((croppedImageUrl: string) => {
+    replaceImage(croppedImageUrl)
+  }, [replaceImage])
+
   // Listen for active object changes
   useEffect(() => {
     if (!activeDesign?.canvas) return
     const canvas = activeDesign.canvas
     const update = () => {
       const obj = canvas.getActiveObject()
-      setHasActiveObject(!!obj && !(obj as any).isBaseLayer)
+      setHasActiveObject(!!obj && !('isBaseLayer' in obj && obj.isBaseLayer))
       setActiveObjectType(obj?.type || null)
     }
     canvas.on('selection:created', update)
@@ -155,27 +176,6 @@ export function Canvas({ className, width, height, onStateChange }: CanvasProps)
   if (!activeDesignId) {
     return <div className="flex items-center justify-center h-full"><p>Create a canvas to begin</p></div>
   }
-
-  // Context menu actions
-  const handleDuplicate = useCallback(() => {
-    executeCanvasTool('duplicateSelectedObject', {})
-  }, [executeCanvasTool])
-  const handleDelete = useCallback(() => {
-    executeCanvasTool('deleteSelectedObject', {})
-  }, [executeCanvasTool])
-
-  const handleOpenCropDialog = useCallback(() => {
-    const obj = activeDesign?.canvas?.getActiveObject() as fabric.Image
-    if (obj && obj.type === 'image') {
-      const originalSrc = obj.originalSrc || obj.getSrc()
-      setImageToCrop(originalSrc)
-      setIsCropDialogOpen(true)
-    }
-  }, [activeDesign])
-
-  const handleCrop = useCallback((croppedImageUrl: string) => {
-    replaceImage(croppedImageUrl)
-  }, [replaceImage])
 
   return (
     <>
