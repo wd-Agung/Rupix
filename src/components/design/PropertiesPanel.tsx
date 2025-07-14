@@ -8,10 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/src/components/ui/separator'
 import { Slider } from '@/src/components/ui/slider'
 import { useActiveDesign } from '@/src/lib/hooks/useActiveDesign'
-import { getFonts } from '@/src/lib/indexedDB'
 import { useDesignStore } from '@/src/lib/stores/design-store'
 import { cn } from '@/src/lib/utils'
 import * as fabric from 'fabric'
+import { getAllFontsFromCache } from '@/src/lib/cache-storage'
 import {
   AlignCenter,
   AlignLeft,
@@ -198,7 +198,7 @@ export function PropertiesPanel({ className, onCollapse }: PropertiesPanelProps)
 
   useEffect(() => {
     const loadCustomFonts = async () => {
-      const fonts = await getFonts()
+      const fonts = await getAllFontsFromCache()
       setCustomFonts(fonts.map((font) => font.name))
     }
     loadCustomFonts()
